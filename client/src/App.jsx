@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.45'
-const TENALI_BUILD_DATE = '2026-04-29 12:42 IST'
+const TENALI_VERSION = '1.0.46'
+const TENALI_BUILD_DATE = '2026-04-30 07:35 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -7585,7 +7585,7 @@ const MULT_BASE_QUESTIONS = 10        // initial questions in Level 1 / 2
 const MULT_EXTENSION_STEP = 5         // questions added per extension round
 const MULT_EXTENSION_MAX = 20         // total extra questions allowed across all extensions
 const MULT_FAST_AVG_SECONDS = 4       // avg time per question must be under this to extend
-const MULT_LEVEL3_TIMEOUT_SECONDS = 10 // per-question timeout in rapid fire
+const MULT_LEVEL3_TIMEOUT_SECONDS = 5 // per-question timeout in rapid fire (Module 36 spec)
 const MULT_STATS_KEY = 'tenali-mult-stats-v1'
 
 /** Load persisted multiplication stats; returns a safe default on first run. */

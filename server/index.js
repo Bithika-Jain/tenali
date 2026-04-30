@@ -1851,56 +1851,204 @@ function factorCoeffRange(difficulty) {
  *   display: string         // Formatted quadratic for display
  * }
  */
+/* ─── Module 39 — Polynomial Factoring ────────────────────────────────────
+ * Replaces the old "easy/medium/hard/extrahard" flow with a tier × level
+ * model:
+ *   Tier 1: a = 1, single-digit b, |c| ≤ 20  (x² + 5x + 6)
+ *   Tier 2: a = 1, b up to ±15, |c| ≤ 50     (x² + 11x + 30)
+ *   Tier 3: a ∈ 2..3, double-digit b/c       (2x² + 7x + 3)
+ *   Tier 4: a ∈ 2..5, larger b/c             (3x² + 10x + 8)
+ *
+ *   Level 1: MCQ — pick the correct factorised form from 4 options.
+ *   Level 2: Fill-in-the-blank — student supplies the integer factors
+ *            inside a given skeleton.
+ *   Level 3: Direct answer input — student types the entire factorisation;
+ *            commutative ordering is accepted at the check step.
+ *
+ * Generation always proceeds from the factors (px + q)(rx + s) so the
+ * resulting quadratic is guaranteed to have two real integer roots — no
+ * post-hoc verification required.
+ */
+
+const POLYFACTOR_TIERS = {
+  1: { aChoices: [1],          qMax: 10, qMin: 1 },
+  2: { aChoices: [1],          qMax: 12, qMin: 1 },
+  3: { aChoices: [2, 3],       qMax: 6,  qMin: 1 },
+  4: { aChoices: [2, 3, 4, 5], qMax: 6,  qMin: 1 },
+};
+
+function polyfactorPickFactors(tier) {
+  const cfg = POLYFACTOR_TIERS[tier] || POLYFACTOR_TIERS[1];
+  const a = cfg.aChoices[Math.floor(Math.random() * cfg.aChoices.length)];
+  // Decide p, r so p*r = a. For Tier 1/2, p = r = 1. For higher tiers, split a.
+  let p, r;
+  if (a === 1) { p = 1; r = 1; }
+  else if (a === 2) { p = 2; r = 1; }
+  else if (a === 3) { p = 3; r = 1; }
+  else if (a === 4) { p = Math.random() < 0.5 ? 4 : 2; r = a / p; }
+  else { p = a; r = 1; } // a = 5
+  // Pick q, s — non-zero. For Tier 1, |q| ≤ qMax and |s| ≤ qMax with both positive
+  // bias to keep the early questions simple (positive constants give addition-style).
+  const sign = () => (tier === 1 ? 1 : (Math.random() < 0.6 ? 1 : -1));
+  const q = sign() * randomInt(cfg.qMin, cfg.qMax);
+  const s = sign() * randomInt(cfg.qMin, cfg.qMax);
+  return { p, q, r, s };
+}
+
+function polyfactorExpand(p, q, r, s) {
+  return { a: p * r, b: p * s + q * r, c: q * s };
+}
+
+/** Render a single linear factor (αx + β) with proper signs and minus glyph. */
+function polyfactorFormat(p, q) {
+  const left = p === 1 ? 'x' : `${p}x`;
+  if (q === 0) return `(${left})`;
+  const sign = q > 0 ? '+' : '−';
+  return `(${left} ${sign} ${Math.abs(q)})`;
+}
+
+function polyfactorFormatBoth(p, q, r, s) {
+  return polyfactorFormat(p, q) + polyfactorFormat(r, s);
+}
+
+/** Build 4 MCQ options including the correct answer plus 3 distractors. */
+function polyfactorMCQOptions(p, q, r, s, tier) {
+  const correct = polyfactorFormatBoth(p, q, r, s);
+  const seen = new Set([correct]);
+  const distractors = [];
+
+  const candidates = [
+    [p, -q, r, s],            // flip q sign
+    [p, q, r, -s],            // flip s sign
+    [p, q + 1, r, s],         // off-by-one on q
+    [p, q, r, s + 1],         // off-by-one on s
+    [p, s, r, q],             // swap q and s (only different when p≠r)
+    [p, -q, r, -s],           // both flipped (sometimes equals correct under sign symmetry — caught below)
+  ].map(([P, Q, R, S]) => polyfactorFormatBoth(P, Q, R, S));
+
+  for (const c of candidates) {
+    if (!seen.has(c)) {
+      seen.add(c);
+      distractors.push(c);
+      if (distractors.length === 3) break;
+    }
+  }
+  // Shuffle options
+  const opts = [correct, ...distractors];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return { options: opts, correct };
+}
+
 app.get('/polyfactor-api/question', (req, res) => {
-  const difficulty = req.query.difficulty || 'easy';
-  const range = factorCoeffRange(difficulty);
-  // Generate from factors: (px + q)(rx + s) = prx² + (ps+qr)x + qs
-  let p, q, r, s;
-  p = randomInt(1, Math.min(range.max, 5));
-  r = randomInt(1, Math.min(range.max, 5));
-  q = randomInt(-range.max, range.max);
-  s = randomInt(-range.max, range.max);
-  if (q === 0) q = 1;
-  if (s === 0) s = 1;
-  // Expand (px + q)(rx + s) to get ax² + bx + c
-  const a = p * r;
-  const b = p * s + q * r;
-  const c = q * s;
-  res.json({
-    id: `polyfactor-${Date.now()}-${Math.random()}`,
+  let tier = parseInt(req.query.tier, 10);
+  if (!tier || isNaN(tier)) {
+    const map = { easy: 1, medium: 2, hard: 3, extrahard: 4 };
+    tier = map[req.query.difficulty] || 1;
+  }
+  tier = Math.max(1, Math.min(4, tier));
+  const level = Math.max(1, Math.min(3, parseInt(req.query.level, 10) || 1));
+  const seen = String(req.query.seen || '').split(',').filter(Boolean);
+
+  let attempt = 0;
+  let factors;
+  let id;
+  do {
+    factors = polyfactorPickFactors(tier);
+    id = `pf-T${tier}-L${level}-${factors.p},${factors.q},${factors.r},${factors.s}`;
+    attempt++;
+  } while (seen.includes(id) && attempt < 25);
+
+  const { p, q, r, s } = factors;
+  const { a, b, c } = polyfactorExpand(p, q, r, s);
+  const display = formatPoly([c, b, a]);
+
+  // Worked example (shown by client on struggle)
+  const worked = {
+    heading: `Worked example: ${display}`,
+    lines: [
+      `Find two numbers whose product is ${c} and that combine (with a=${a}) to give the middle term ${b}.`,
+      `Those numbers correspond to factors ${polyfactorFormat(p, q)} and ${polyfactorFormat(r, s)}.`,
+      `Check: ${polyfactorFormatBoth(p, q, r, s)} = ${display}.`,
+    ],
+  };
+
+  if (level === 1) {
+    const { options, correct } = polyfactorMCQOptions(p, q, r, s, tier);
+    return res.json({
+      id, tier, level, kind: 'mcq',
+      a, b, c,
+      factors: { p, q, r, s },
+      display, prompt: `Factorise: ${display}`,
+      options, correct,
+      worked,
+    });
+  }
+
+  if (level === 2) {
+    // Choose a blank variant: 'both' (both factors), 'q', 's', or 'sign'
+    const variants = ['both', 'q', 's'];
+    if (q !== 0 && s !== 0 && Math.random() < 0.25) variants.push('sign');
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+    return res.json({
+      id, tier, level, kind: 'fill_blank',
+      a, b, c,
+      factors: { p, q, r, s },
+      variant,                    // tells the client which blanks to render
+      display, prompt: `Factorise: ${display}`,
+      worked,
+    });
+  }
+
+  // Level 3 — direct input. Client posts userP/Q/R/S; check accepts commutative orderings.
+  return res.json({
+    id, tier, level, kind: 'direct',
     a, b, c,
     factors: { p, q, r, s },
-    display: formatPoly([c, b, a]),
+    display, prompt: `Factorise completely: ${display}`,
+    worked,
   });
 });
 
 /**
- * POST /polyfactor-api/check
- * Verify if user correctly factored the quadratic
- * Checks if (userP*x + userQ)(userR*x + userS) expands to ax² + bx + c
- *
- * Request Body:
- * {
- *   a: number,              // x² coefficient of quadratic
- *   b: number,              // x coefficient
- *   c: number,              // Constant term
- *   userP, userQ, userR, userS // Coefficients user entered for (Px+Q)(Rx+S)
- * }
- *
- * Response:
- * {
- *   correct: boolean,
- *   message: string
- * }
+ * Verify a factorisation. Accepts both orderings of factors
+ * (i.e. (x+2)(x+3) and (x+3)(x+2) both pass) per Module 39 dev note.
  */
-app.post('/polyfactor-api/check', (req, res) => {
-  const { a, b, c, userP, userQ, userR, userS } = req.body || {};
-  // Check: (userP*x + userQ)(userR*x + userS) expands to ax² + bx + c
-  const ua = Number(userP) * Number(userR);
-  const ub = Number(userP) * Number(userS) + Number(userQ) * Number(userR);
-  const uc = Number(userQ) * Number(userS);
-  const correct = ua === Number(a) && ub === Number(b) && uc === Number(c);
-  res.json({ correct, message: correct ? 'Correct' : 'Incorrect' });
+function polyfactorVerify(a, b, c, p1, q1, p2, q2) {
+  const ua = p1 * p2;
+  const ub = p1 * q2 + q1 * p2;
+  const uc = q1 * q2;
+  return ua === a && ub === b && uc === c;
+}
+
+app.post('/polyfactor-api/check', express.json(), (req, res) => {
+  const { a, b, c, kind, level } = req.body || {};
+
+  if (kind === 'mcq') {
+    const { selectedOption, correct: correctOption } = req.body;
+    const correct = String(selectedOption) === String(correctOption);
+    return res.json({ correct, message: correct ? 'Correct' : 'Incorrect', display: correctOption });
+  }
+
+  // For fill_blank and direct we get userP/Q/R/S.
+  const userP = Number(req.body.userP);
+  const userQ = Number(req.body.userQ);
+  const userR = Number(req.body.userR);
+  const userS = Number(req.body.userS);
+
+  // Try both orderings to support the commutative case.
+  const correct =
+    polyfactorVerify(Number(a), Number(b), Number(c), userP, userQ, userR, userS) ||
+    polyfactorVerify(Number(a), Number(b), Number(c), userR, userS, userP, userQ);
+
+  // Build a canonical display for feedback
+  const display = req.body.display || (req.body.factors
+    ? polyfactorFormatBoth(req.body.factors.p, req.body.factors.q, req.body.factors.r, req.body.factors.s)
+    : '');
+
+  res.json({ correct, message: correct ? 'Correct' : 'Incorrect', display, level });
 });
 
 /**
@@ -3735,88 +3883,183 @@ app.post('/ratio-api/check', express.json(), (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PERCENTAGES API
+// Module 37 spec — adaptive tier+type flow.
+//   No upfront theory. No question repeats within a session. Difficulty (tier)
+//   moves up/down based on accuracy + speed. Five question types unlock
+//   sequentially.
+//
+// The endpoint is now driven by `?tier=N&type=K` rather than the old
+// `difficulty=easy|medium|hard|extrahard` axis. The legacy axis is retained
+// as a fallback for any caller that hasn't been migrated yet.
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Tier configuration per Module 37 spec. */
+const PERCENT_TIERS = {
+  1: { pcts: [10, 25, 50, 100],         lo: 10,   hi: 100,   label: 'Tier 1' },
+  2: { pcts: [20, 30, 75],              lo: 100,  hi: 500,   label: 'Tier 2' },
+  3: { pcts: [15, 35, 60, 80],          lo: 500,  hi: 2000,  label: 'Tier 3' },
+  4: { pcts: [12.5, 17.5, 22.5, 37.5, 47.5, 62.5, 87.5], lo: 2000, hi: 10000, label: 'Tier 4' },
+};
+
+/** Pick a base in the tier range that yields a "clean" answer for the given pct. */
+function percentPickBase(tier, cfg, pct) {
+  // For tier 4 we accept non-clean bases — calculator-style numbers are part of the challenge.
+  if (tier >= 4) {
+    return Math.round(randInt(cfg.lo, cfg.hi) / 10) * 10;
+  }
+  // For tiers 1-3, prefer bases that produce integer answers (pct * base divisible by 100).
+  // Iterate a handful of candidates from the tier range.
+  const candidates = [];
+  const step = tier === 1 ? 10 : 50;
+  for (let b = cfg.lo; b <= cfg.hi; b += step) {
+    if ((Math.round(pct * b * 10) / 10) % 100 === 0) candidates.push(b);
+  }
+  if (candidates.length === 0) {
+    return Math.round((cfg.lo + cfg.hi) / 2);
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
 /**
- * GET /percent-api/question?difficulty=easy|medium|hard|extrahard
+ * Generate a single percent question for the given (tier, type). Returns an
+ * object containing the prompt, the canonical answer, a deterministic content
+ * id (so the client can dedupe via `?seen=`), and an optional `scaffold`
+ * payload for the very first Type-1 questions.
+ */
+function generatePercentQuestion(tier, type, cfg, isFirstOfType) {
+  const pct = cfg.pcts[Math.floor(Math.random() * cfg.pcts.length)];
+  const base = percentPickBase(tier, cfg, pct);
+  const cid = (suffix) => `t${tier}-q${type}-p${pct}-b${base}${suffix ? '-' + suffix : ''}`;
+  const round2 = (v) => Math.round(v * 100) / 100;
+
+  let prompt, answer, idSuffix = '', meta = {}, scaffold = null, expectsPercent = false;
+
+  switch (type) {
+    case 1: {
+      // What is X% of N?
+      answer = round2((pct * base) / 100);
+      prompt = `What is ${pct}% of ${base}?`;
+      if (isFirstOfType && tier === 1 && pct !== 100) {
+        // Visual scaffold for the very first Type-1 questions: 100% → base, 10% → base/10, X% → ___
+        // When pct itself is 10, the "10% step" row IS the question — skip the duplicate.
+        // When pct is 100 the first row already gives away the answer — no scaffold.
+        const rows = [{ label: '100%', value: base }];
+        if (pct !== 10) rows.push({ label: '10%', value: round2(base / 10) });
+        rows.push({ label: `${pct}%`, value: '?' });
+        scaffold = { rows };
+      }
+      meta = { pct, base };
+      break;
+    }
+    case 2: {
+      // N is what % of M?  (answer is a percentage)
+      const result = round2((pct * base) / 100);
+      answer = pct;
+      prompt = `${result} is what % of ${base}?`;
+      expectsPercent = true;
+      meta = { pct, base, result };
+      break;
+    }
+    case 3: {
+      // X% of ? = N → find original
+      const result = round2((pct * base) / 100);
+      answer = base;
+      prompt = `${pct}% of ? = ${result}. Find the missing number.`;
+      meta = { pct, base, result };
+      break;
+    }
+    case 4: {
+      // Percentage increase / decrease
+      const direction = Math.random() < 0.5 ? 'increase' : 'decrease';
+      idSuffix = direction;
+      const delta = round2((pct * base) / 100);
+      const newVal = round2(direction === 'increase' ? base + delta : base - delta);
+      answer = pct;
+      expectsPercent = true;
+      prompt = direction === 'increase'
+        ? `A value rises from ${base} to ${newVal}. What is the percentage increase?`
+        : `A value falls from ${base} to ${newVal}. What is the percentage decrease?`;
+      meta = { pct, base, newVal, direction };
+      break;
+    }
+    case 5: {
+      // Discount + tax — Module 37 dev note locks order to: discount FIRST, then tax.
+      const discount = pct;
+      const taxRates = tier <= 2 ? [5, 10] : [12, 18];
+      const taxRate = taxRates[Math.floor(Math.random() * taxRates.length)];
+      idSuffix = `tax${taxRate}`;
+      const afterDiscount = base * (1 - discount / 100);
+      const finalPrice = round2(afterDiscount * (1 + taxRate / 100));
+      answer = finalPrice;
+      prompt = `A ₹${base} item has a ${discount}% discount applied first, then ${taxRate}% tax. What is the final price?`;
+      meta = { pct, base, discount, taxRate };
+      break;
+    }
+    default:
+      // Should not happen — clamp at type 1
+      return generatePercentQuestion(tier, 1, cfg, isFirstOfType);
+  }
+
+  return {
+    id: cid(idSuffix),
+    tier, type, pct, base,
+    prompt, answer, scaffold, expectsPercent, meta,
+  };
+}
+
+/**
+ * GET /percent-api/question
  *
- * Easy:      Find X% of a number (e.g. 20% of 150)
- * Medium:    Percentage increase/decrease (e.g. increase 80 by 15%)
- * Hard:      Reverse percentage (e.g. after 20% increase, price is 60. What was original?)
- * ExtraHard: Compound interest / repeated percentage change
+ * New params (Module 37):
+ *   tier   — 1..4 (default 1)
+ *   type   — 1..5 (default 1)
+ *   first  — '1' to render scaffold for the first questions of a type
+ *   seen   — comma-separated list of recently-shown question ids; the server
+ *            tries up to 50 generations to return one not in this list.
+ *
+ * Legacy fallback: if `tier` is absent the endpoint accepts the old
+ * `difficulty=easy|medium|hard|extrahard` and maps it to a tier.
  */
 app.get('/percent-api/question', (req, res) => {
-  const difficulty = req.query.difficulty || 'easy';
-  const id = Date.now();
+  let tier = parseInt(req.query.tier, 10);
+  if (!tier || isNaN(tier)) {
+    // Legacy difficulty mapping
+    const map = { easy: 1, medium: 2, hard: 3, extrahard: 4 };
+    tier = map[req.query.difficulty] || 1;
+  }
+  tier = Math.max(1, Math.min(4, tier));
+  const type = Math.max(1, Math.min(5, parseInt(req.query.type, 10) || 1));
+  const isFirstOfType = req.query.first === '1';
+  const seen = String(req.query.seen || '').split(',').filter(Boolean);
+  const cfg = PERCENT_TIERS[tier];
 
-  if (difficulty === 'easy') {
-    // Find X% of N
-    const pct = seqPick([5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 80, 90]);
-    const base = seqPick([50, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 800, 1000]);
-    const answer = pct * base / 100;
-    const prompt = `What is ${pct}% of ${base}?`;
-    res.json({ id, difficulty, type: 'find_pct', pct, base, answer, prompt });
+  let q;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    q = generatePercentQuestion(tier, type, cfg, isFirstOfType);
+    if (!seen.includes(q.id)) break;
   }
-  else if (difficulty === 'medium') {
-    // Increase or decrease by X%
-    const op = seqPick(['increase', 'decrease']);
-    const pct = seqPick([5, 10, 15, 20, 25, 30, 40, 50]);
-    const base = seqPick([40, 50, 60, 80, 100, 120, 150, 200, 250, 300, 400, 500]);
-    const change = pct * base / 100;
-    const answer = op === 'increase' ? base + change : base - change;
-    const prompt = `${op === 'increase' ? 'Increase' : 'Decrease'} ${base} by ${pct}%`;
-    res.json({ id, difficulty, type: 'inc_dec', op, pct, base, answer, prompt });
-  }
-  else if (difficulty === 'hard') {
-    // Reverse percentage: "After a P% increase, the value is V. What was the original?"
-    const op = seqPick(['increase', 'decrease']);
-    const pct = seqPick([10, 15, 20, 25, 30, 40, 50]);
-    const original = seqPick([40, 50, 60, 80, 100, 120, 150, 200, 250, 300]);
-    const finalVal = op === 'increase'
-      ? original * (1 + pct / 100)
-      : original * (1 - pct / 100);
-    const prompt = `After a ${pct}% ${op}, the price is $${finalVal}. What was the original price?`;
-    res.json({ id, difficulty, type: 'reverse', op, pct, finalVal, answer: original, prompt });
-  }
-  else {
-    // Compound: A = P(1 ± r/100)^n — find the final amount
-    const P = seqPick([100, 200, 500, 1000, 2000, 5000]);
-    const rate = seqPick([5, 10, 15, 20]);
-    const years = seqPick([2, 3, 4]);
-    const op = seqPick(['increase', 'decrease']);
-    const multiplier = op === 'increase' ? (1 + rate / 100) : (1 - rate / 100);
-    const answer = Math.round(P * Math.pow(multiplier, years) * 100) / 100;
-    const prompt = op === 'increase'
-      ? `$${P} invested at ${rate}% compound interest per year for ${years} years. Find the final amount.`
-      : `A population of ${P} decreases by ${rate}% per year for ${years} years. What is the final population?`;
-    res.json({ id, difficulty, type: 'compound', P, rate, years, op, answer, prompt });
-  }
+  res.json(q);
 });
 
 /**
  * POST /percent-api/check
+ *
+ * Accepts the user's answer with tolerant parsing — strips %, ₹, $, commas,
+ * spaces, unicode minus. Marks correct if within 0.01 of the expected answer
+ * (or 1% relative for tier-4 calculator-style answers).
  */
 app.post('/percent-api/check', express.json(), (req, res) => {
-  const { type, answer: expected } = req.body;
-  const userStr = (req.body.userAnswer || '').replace(/\s+/g, '').replace(/[$,]/g, '').replace(/−/g, '-');
+  const { type, tier, answer: expected, expectsPercent } = req.body;
+  const raw = String(req.body.userAnswer || '');
+  const userStr = raw.replace(/\s+/g, '').replace(/[%₹$,]/g, '').replace(/−/g, '-');
   const userNum = parseFloat(userStr);
   let correct = false;
-
-  if (!isNaN(userNum)) {
-    if (type === 'compound') {
-      // Allow rounding to 2 decimal places
-      correct = Math.abs(userNum - expected) < 0.5;
-    } else {
-      correct = Math.abs(userNum - expected) < 0.01;
-    }
+  if (!isNaN(userNum) && expected !== undefined && expected !== null) {
+    const tol = (tier === 4 || type === 5) ? Math.max(0.01, Math.abs(expected) * 0.005) : 0.01;
+    correct = Math.abs(userNum - expected) <= tol;
   }
-
-  let display = Number.isInteger(expected) ? String(expected) : expected.toFixed(2);
-  if (type === 'reverse' || type === 'find_pct' || type === 'inc_dec') {
-    display = String(expected);
-  }
-
-  res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect' });
+  const display = Number.isInteger(expected) ? String(expected) : (expected != null ? Number(expected).toFixed(2) : '');
+  res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect', expectsPercent: !!expectsPercent });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4308,83 +4551,303 @@ app.post('/coordgeom-api/check', express.json(), (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROBABILITY API
+// Module 42 spec — context/type/level-aware adaptive flow.
+//   Levels:    1 (MCQ, plain English) → 2 (fill-in, P(x) introduced) → 3 (direct, all contexts)
+//   Contexts:  balls → coins → dice → cards (cards Level 3 only)
+//   Types:     1 single, 2 complementary, 3 multi w/ replacement, 4 multi w/o replacement
+//
+// Plain English phrasing replaces P(O) shorthand at Level 1; Level 2 prompts
+// show plain English alongside P(x). Level 3 uses P(x) standalone (the client
+// shows the one-time deck/notation explainers).
+// All answers are simplified fractions but the check endpoint also accepts
+// unsimplified equivalents (and signals back the simplified form).
 // ═══════════════════════════════════════════════════════════════════════════
 
-app.get('/prob-api/question', (req, res) => {
-  const difficulty = req.query.difficulty || 'easy';
-  const id = Date.now();
+const PROB_VALID_CONTEXTS = ['balls', 'coins', 'dice', 'cards'];
 
-  if (difficulty === 'easy') {
-    // Simple probability: P(event) from a bag/deck
-    const items = triPick([
-      { desc: 'bag', contents: { red: triRand(2,6), blue: triRand(2,6), green: triRand(1,4) }, ask: 'red' },
-      { desc: 'bag', contents: { red: triRand(1,5), blue: triRand(2,7), yellow: triRand(1,3) }, ask: 'blue' },
-      { desc: 'box', contents: { apple: triRand(2,5), orange: triRand(3,6), banana: triRand(1,4) }, ask: 'orange' },
-    ]);
-    const total = Object.values(items.contents).reduce((s, v) => s + v, 0);
-    const favorable = items.contents[items.ask];
-    const g = gcd(favorable, total);
-    const prompt = `A ${items.desc} has ${Object.entries(items.contents).map(([k,v]) => `${v} ${k}`).join(', ')}. P(${items.ask})?`;
-    res.json({ id, difficulty, type: 'simple', prompt, ansNum: favorable / g, ansDen: total / g });
+/** Pick a "favourable" event description for a given context. */
+function probSampleEvent(context) {
+  if (context === 'balls') {
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const counts = {};
+    let total = 0;
+    // 2-3 colours, each 2-6 balls
+    const pickedColors = [];
+    while (pickedColors.length < (Math.random() < 0.5 ? 2 : 3)) {
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      if (!pickedColors.includes(c)) pickedColors.push(c);
+    }
+    for (const c of pickedColors) {
+      const n = randomInt(2, 6);
+      counts[c] = n; total += n;
+    }
+    const ask = pickedColors[Math.floor(Math.random() * pickedColors.length)];
+    return { context, counts, total, ask, askLabel: `${ask} ball` };
   }
-  else if (difficulty === 'medium') {
-    // Two independent events: P(A and B) = P(A) × P(B)
-    const n1 = triRand(2, 6); const d1 = triRand(n1 + 1, 10);
-    const n2 = triRand(2, 6); const d2 = triRand(n2 + 1, 10);
-    const prodN = n1 * n2; const prodD = d1 * d2;
-    const g = gcd(prodN, prodD);
-    const prompt = `P(A) = ${n1}/${d1}, P(B) = ${n2}/${d2}. A and B are independent. Find P(A and B).`;
-    res.json({ id, difficulty, type: 'independent', prompt, ansNum: prodN / g, ansDen: prodD / g });
+  if (context === 'coins') {
+    // 1 or 2 coin tosses
+    const tosses = Math.random() < 0.5 ? 1 : 2;
+    const ask = tosses === 1
+      ? (Math.random() < 0.5 ? 'heads' : 'tails')
+      : ['two heads', 'two tails', 'one head and one tail'][Math.floor(Math.random() * 3)];
+    return { context, tosses, ask, askLabel: ask };
   }
-  else if (difficulty === 'hard') {
-    // P(A or B) = P(A) + P(B) - P(A and B) for mutually exclusive or not
-    const exclusive = triPick([true, false]);
-    if (exclusive) {
-      const n1 = triRand(1, 4); const n2 = triRand(1, 4); const d = triRand(n1 + n2 + 1, 12);
-      const g = gcd(n1 + n2, d);
-      const prompt = `P(A) = ${n1}/${d}, P(B) = ${n2}/${d}. A and B are mutually exclusive. Find P(A or B).`;
-      res.json({ id, difficulty, type: 'or_event', prompt, ansNum: (n1 + n2) / g, ansDen: d / g });
-    } else {
-      const d = triRand(8, 20);
-      const nA = triRand(3, d - 3);
-      const nB = triRand(3, d - 3);
-      const nAB = triRand(1, Math.min(nA, nB) - 1);
-      const nAuB = nA + nB - nAB;
-      const g = gcd(nAuB, d);
-      const prompt = `P(A) = ${nA}/${d}, P(B) = ${nB}/${d}, P(A and B) = ${nAB}/${d}. Find P(A or B).`;
-      res.json({ id, difficulty, type: 'or_event', prompt, ansNum: nAuB / g, ansDen: d / g });
+  if (context === 'dice') {
+    const dice = Math.random() < 0.5 ? 1 : 2;
+    const askPool = dice === 1
+      ? ['a 6', 'an even number', 'a number greater than 4', 'a 1 or 2']
+      : ['a sum of 7', 'a sum of 8', 'a double', 'both odd'];
+    const ask = askPool[Math.floor(Math.random() * askPool.length)];
+    return { context, dice, ask, askLabel: ask };
+  }
+  // cards
+  const askPool = [
+    'a heart', 'a spade', 'a red card', 'a black card',
+    'a king', 'a queen', 'an ace', 'a face card',
+    'the ace of spades', 'a 7',
+  ];
+  const ask = askPool[Math.floor(Math.random() * askPool.length)];
+  return { context, ask, askLabel: ask };
+}
+
+/** Probability (numerator, denominator) of the favourable event. */
+function probEventNumDen(ev) {
+  if (ev.context === 'balls') return { n: ev.counts[ev.ask], d: ev.total };
+  if (ev.context === 'coins') {
+    if (ev.tosses === 1) return { n: 1, d: 2 };
+    if (ev.ask === 'two heads' || ev.ask === 'two tails') return { n: 1, d: 4 };
+    return { n: 2, d: 4 }; // one head one tail
+  }
+  if (ev.context === 'dice') {
+    if (ev.dice === 1) {
+      if (ev.ask === 'a 6') return { n: 1, d: 6 };
+      if (ev.ask === 'an even number') return { n: 3, d: 6 };
+      if (ev.ask === 'a number greater than 4') return { n: 2, d: 6 };
+      if (ev.ask === 'a 1 or 2') return { n: 2, d: 6 };
+    }
+    if (ev.dice === 2) {
+      if (ev.ask === 'a sum of 7') return { n: 6, d: 36 };
+      if (ev.ask === 'a sum of 8') return { n: 5, d: 36 };
+      if (ev.ask === 'a double') return { n: 6, d: 36 };
+      if (ev.ask === 'both odd') return { n: 9, d: 36 };
     }
   }
-  else {
-    // Conditional / without replacement
-    const total = triRand(8, 15);
-    const typeA = triRand(3, total - 3);
-    const typeB = total - typeA;
-    // P(both same type) without replacement
-    const pNum = typeA * (typeA - 1) + typeB * (typeB - 1);
-    const pDen = total * (total - 1);
-    const g = gcd(pNum, pDen);
-    const prompt = `A bag has ${typeA} red and ${typeB} blue balls. Two drawn without replacement. P(same colour)?`;
-    res.json({ id, difficulty, type: 'without_replacement', prompt, ansNum: pNum / g, ansDen: pDen / g });
+  // cards
+  const map = {
+    'a heart': [13, 52], 'a spade': [13, 52],
+    'a red card': [26, 52], 'a black card': [26, 52],
+    'a king': [4, 52], 'a queen': [4, 52], 'an ace': [4, 52],
+    'a face card': [12, 52],
+    'the ace of spades': [1, 52], 'a 7': [4, 52],
+  };
+  const [n, d] = map[ev.ask] || [1, 52];
+  return { n, d };
+}
+
+/** Build the natural-language prompt for an event description. */
+function probPromptForEvent(ev, level, probType) {
+  let scenario = '';
+  if (ev.context === 'balls') {
+    const parts = Object.entries(ev.counts).map(([k, v]) => `${v} ${k}`).join(', ');
+    scenario = `A bag contains ${parts} balls (${ev.total} balls in total). One ball is drawn at random.`;
+  } else if (ev.context === 'coins') {
+    scenario = ev.tosses === 1
+      ? 'A fair coin is tossed once.'
+      : 'A fair coin is tossed twice.';
+  } else if (ev.context === 'dice') {
+    scenario = ev.dice === 1
+      ? 'A standard six-sided die is rolled.'
+      : 'Two standard six-sided dice are rolled.';
+  } else {
+    scenario = 'A card is drawn at random from a standard deck of 52 cards.';
   }
+
+  const askPlain = `What is the probability of getting ${ev.ask}?`;
+  const askComplement = `What is the probability of NOT getting ${ev.ask}?`;
+  const ask = (probType === 2) ? askComplement : askPlain;
+
+  if (level === 1) {
+    // Plain English only
+    return scenario + ' ' + ask;
+  }
+  if (level === 2) {
+    // Plain English with P(x) notation alongside
+    const px = (probType === 2) ? `P(not ${ev.ask})` : `P(${ev.ask})`;
+    return `${scenario} ${ask}\nIn notation: ${px} = ?`;
+  }
+  // Level 3 — P(x) notation only (deck explainer rendered by client once)
+  const px = (probType === 2) ? `P(not ${ev.ask})` : `P(${ev.ask})`;
+  return `${scenario} Find ${px}.`;
+}
+
+/** Simplify fraction and return {num, den}. Reuses simplifyFraction from the shared utils. */
+function probAnswer(numerator, denominator) {
+  return simplifyFraction(numerator, denominator);
+}
+
+/** Build a question for problem type 1 (single event). */
+function probTypeSingle(context, level) {
+  const ev = probSampleEvent(context);
+  const { n, d } = probEventNumDen(ev);
+  const ans = probAnswer(n, d);
+  return {
+    type: 1, context, ev,
+    prompt: probPromptForEvent(ev, level, 1),
+    ansNum: ans.num, ansDen: ans.den,
+  };
+}
+
+/** Type 2 — complementary event: P(not X) = 1 - P(X). */
+function probTypeComplement(context, level) {
+  const ev = probSampleEvent(context);
+  const { n, d } = probEventNumDen(ev);
+  const ans = probAnswer(d - n, d);
+  return {
+    type: 2, context, ev,
+    prompt: probPromptForEvent(ev, level, 2),
+    ansNum: ans.num, ansDen: ans.den,
+  };
+}
+
+/** Type 3 — multiple events with replacement: P(A then A) = P(A) × P(A). */
+function probTypeMultiWithRep(context, level) {
+  const ev = probSampleEvent(context);
+  const { n, d } = probEventNumDen(ev);
+  // Two-draw with replacement
+  const ans = probAnswer(n * n, d * d);
+  let prompt;
+  if (ev.context === 'balls') {
+    const parts = Object.entries(ev.counts).map(([k, v]) => `${v} ${k}`).join(', ');
+    prompt = `A bag contains ${parts} balls. A ball is drawn, its colour noted, and it is REPLACED. Then a second ball is drawn. What is the probability that BOTH balls are ${ev.ask}?`;
+  } else if (ev.context === 'dice') {
+    prompt = `${ev.dice === 1 ? 'A die is' : 'Two dice are'} rolled twice. What is the probability of getting ${ev.ask} on BOTH rolls?`;
+  } else if (ev.context === 'coins') {
+    prompt = `A coin is tossed twice (each toss independent). What is the probability of getting ${ev.ask} both times?`;
+  } else {
+    prompt = `A card is drawn from a deck, REPLACED, and another is drawn. What is the probability that BOTH cards are ${ev.ask}?`;
+  }
+  if (level === 3) prompt += ` (Express as a simplified fraction.)`;
+  return { type: 3, context, ev, prompt, ansNum: ans.num, ansDen: ans.den };
+}
+
+/** Type 4 — multiple events without replacement: requires balls or cards. */
+function probTypeMultiNoRep(context, level) {
+  // Only meaningful for balls / cards (countable, finite). Coerce to balls if context is coins/dice.
+  let ctx = (context === 'coins' || context === 'dice') ? 'balls' : context;
+  if (ctx === 'cards' && level < 3) ctx = 'balls';
+  const ev = probSampleEvent(ctx);
+  const { n, d } = probEventNumDen(ev);
+  if (n < 2 || d < 2) {
+    // Not enough to draw two; fallback
+    return probTypeMultiWithRep(context, level);
+  }
+  const ans = probAnswer(n * (n - 1), d * (d - 1));
+  let prompt;
+  if (ctx === 'balls') {
+    const parts = Object.entries(ev.counts).map(([k, v]) => `${v} ${k}`).join(', ');
+    prompt = `A bag contains ${parts} balls. Two are drawn without replacement. What is the probability that BOTH are ${ev.ask}?`;
+  } else {
+    prompt = `Two cards are drawn from a deck without replacement. What is the probability that BOTH are ${ev.ask}?`;
+  }
+  if (level === 3) prompt += ` (Express as a simplified fraction.)`;
+  return { type: 4, context: ctx, ev, prompt, ansNum: ans.num, ansDen: ans.den };
+}
+
+const PROB_TYPE_BUILDERS = {
+  1: probTypeSingle,
+  2: probTypeComplement,
+  3: probTypeMultiWithRep,
+  4: probTypeMultiNoRep,
+};
+
+app.get('/prob-api/question', (req, res) => {
+  let level = parseInt(req.query.level, 10);
+  if (!level || isNaN(level)) {
+    const map = { easy: 1, medium: 2, hard: 3, extrahard: 3 };
+    level = map[req.query.difficulty] || 1;
+  }
+  level = Math.max(1, Math.min(3, level));
+
+  let context = (req.query.context || '').toLowerCase();
+  if (!PROB_VALID_CONTEXTS.includes(context)) context = 'balls';
+  // Spec hard-rule: cards never appear before Level 3
+  if (context === 'cards' && level < 3) context = 'balls';
+  // Spec: dice not until Level 2+
+  if (context === 'dice' && level < 2) context = 'balls';
+
+  let probType = parseInt(req.query.probType, 10);
+  if (!probType || isNaN(probType)) {
+    // legacy: difficulty=hard maps to multi-with-replacement; extrahard to without
+    if (req.query.difficulty === 'hard') probType = 3;
+    else if (req.query.difficulty === 'extrahard') probType = 4;
+    else probType = 1;
+  }
+  probType = Math.max(1, Math.min(4, probType));
+  // Spec hard-rule: type 4 (without-replacement) gated until type 3 mastered — client enforces; server accepts.
+
+  const seen = String(req.query.seen || '').split(',').filter(Boolean);
+  const builder = PROB_TYPE_BUILDERS[probType] || probTypeSingle;
+
+  let q, attempts = 0;
+  let id;
+  do {
+    q = builder(context, level);
+    id = `prob-L${level}-T${probType}-${context}-${q.ev.ask}-${q.ansNum}/${q.ansDen}`;
+    attempts++;
+  } while (seen.includes(id) && attempts < 25);
+
+  // Worked example — shown by the client when it sees N consecutive wrongs (per spec).
+  const worked = {
+    heading: `Worked example: P(event) = favourable outcomes / total outcomes`,
+    lines: [
+      `For the event "${q.ev.askLabel}", count the favourable outcomes and divide by total.`,
+      `Simplify the resulting fraction by dividing numerator and denominator by their GCD.`,
+    ],
+  };
+
+  const display = q.ansDen === 1 ? String(q.ansNum) : `${q.ansNum}/${q.ansDen}`;
+  res.json({
+    id,
+    level, context, probType,
+    type: ['', 'simple', 'complement', 'multi_with_rep', 'multi_no_rep'][probType],
+    prompt: q.prompt,
+    ansNum: q.ansNum, ansDen: q.ansDen,
+    display,
+    worked,
+  });
 });
 
 app.post('/prob-api/check', express.json(), (req, res) => {
   const { ansNum, ansDen } = req.body;
-  const userStr = (req.body.userAnswer || '').replace(/\s+/g, '').replace(/−/g, '-');
-  let correct = false;
-  const fracMatch = userStr.match(/^(-?\d+)\/(-?\d+)$/);
+  // Accept "3/5", "3 / 5", or a decimal. Also accept unsimplified equivalents (e.g., 6/10 ≡ 3/5).
+  const userStr = String(req.body.userAnswer || '').replace(/\s+/g, '').replace(/−/g, '-');
   let uNum, uDen;
-  if (fracMatch) { uNum = parseInt(fracMatch[1]); uDen = parseInt(fracMatch[2]); }
-  else { const n = parseFloat(userStr); if (!isNaN(n)) { uNum = Math.round(n * 1000); uDen = 1000; } }
-  if (uNum !== undefined && uDen !== undefined && uDen !== 0) {
-    const us = simplifyFraction(uNum, uDen);
-    const es = simplifyFraction(ansNum, ansDen);
-    correct = us.num === es.num && us.den === es.den;
+  const fracMatch = userStr.match(/^(-?\d+)\/(-?\d+)$/);
+  if (fracMatch) {
+    uNum = parseInt(fracMatch[1], 10);
+    uDen = parseInt(fracMatch[2], 10);
+  } else {
+    const n = parseFloat(userStr);
+    if (!isNaN(n)) { uNum = Math.round(n * 10000); uDen = 10000; }
   }
   const es = simplifyFraction(ansNum, ansDen);
+  let correct = false, wasUnsimplified = false;
+  if (uNum !== undefined && uDen !== undefined && uDen !== 0) {
+    const us = simplifyFraction(uNum, uDen);
+    correct = us.num === es.num && us.den === es.den;
+    if (correct && fracMatch) {
+      // Detect unsimplified: user fraction wasn't already in lowest terms
+      wasUnsimplified = !(uNum === es.num && uDen === es.den);
+    }
+  }
   const display = es.den === 1 ? String(es.num) : `${es.num}/${es.den}`;
-  res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect' });
+  res.json({
+    correct, display,
+    message: correct
+      ? (wasUnsimplified ? `Correct! In simplest form: ${display}.` : 'Correct!')
+      : 'Incorrect',
+    wasUnsimplified,
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -6663,58 +7126,188 @@ function factorial(n) {
   return result;
 }
 
-function permcombQuestion(difficulty) {
-  const id = `q-${Date.now()}-${Math.random()}`;
-  if (difficulty === 'easy') {
-    // nPr (n≤8, r≤3)
-    const n = randomInt(4, 8);
-    const r = randomInt(1, Math.min(3, n));
-    const answer = factorial(n) / factorial(n - r);
-    const prompt = `Calculate ${n}P${r} (permutations)`;
-    return { id, difficulty, prompt, answer, display: String(answer) };
-  } else if (difficulty === 'medium') {
-    // nCr (n≤10, r≤4)
-    const n = randomInt(4, 10);
-    const r = randomInt(1, Math.min(4, n));
-    const answer = factorial(n) / (factorial(r) * factorial(n - r));
-    const prompt = `Calculate ${n}C${r} (combinations)`;
-    return { id, difficulty, prompt, answer, display: String(answer) };
-  } else if (difficulty === 'hard') {
-    // word problems
-    const scenarios = [
-      { n: 5, r: 3, prompt: 'How many ways can you arrange 3 books from 5 different books on a shelf?' },
-      { n: 6, r: 2, prompt: 'How many ways to choose 2 presidents from 6 candidates?' },
-      { n: 7, r: 4, prompt: 'How many ways to select 4 students from 7 for a committee?' }
-    ];
-    const scenario = triPick(scenarios);
-    const answer = scenario.r <= scenario.n ? factorial(scenario.n) / (factorial(scenario.r) * factorial(scenario.n - scenario.r)) : 0;
-    return { id, difficulty, prompt: scenario.prompt, answer, display: String(answer) };
-  } else {
-    // mixed - 3-letter words from ABCDE with/without repetition
-    const variant = Math.random();
-    if (variant < 0.5) {
-      // without repetition: P(5,3)
-      const answer = factorial(5) / factorial(2);
-      const prompt = 'How many 3-letter words can be formed from {A, B, C, D, E} without repetition?';
-      return { id, difficulty, prompt, answer, display: String(answer) };
-    } else {
-      // with repetition: 5^3
-      const answer = 125;
-      const prompt = 'How many 3-letter words can be formed from {A, B, C, D, E} with repetition allowed?';
-      return { id, difficulty, prompt, answer, display: String(answer) };
-    }
+/* ─── Module 38 — Permutations & Combinations ─────────────────────────────
+ * Two clearly separated sub-sections: Permutation (nPr) first, Combination
+ * (nCr) second, plus a mixed P-vs-C decision mode that only unlocks once
+ * both sub-sections have reached Level 2 (gating is enforced by the client;
+ * the server simply produces whatever question shape is asked for).
+ *
+ * Three levels each, with progressive scaffolding:
+ *   Level 1: Formula fill-in-the-blank (no full calculation, n ≤ 6).
+ *   Level 2: Full numeric calculation, timed.
+ *   Level 3: Word problems requiring the student to identify P vs C.
+ *
+ * Query params:
+ *   section — 'P' | 'C' | 'mixed'  (default 'P')
+ *   level   — 1 | 2 | 3           (default 1)
+ *   seen    — comma-separated list of question ids the client has already shown
+ */
+
+function pcPickPair(level, section) {
+  // n/r bounds tighten in Level 1 ("small values: n from 2-6, r ≤ n").
+  // Level 2 starts small and expands; Level 3 word problems also stay modest.
+  const nMax = level === 1 ? 6 : (level === 2 ? 8 : 9);
+  const nMin = level === 1 ? 3 : 4;
+  const n = randomInt(nMin, nMax);
+  const r = section === 'C'
+    ? randomInt(2, Math.min(n - 1, 4))
+    : randomInt(2, Math.min(n - 1, 4));
+  return { n, r };
+}
+
+/** Build the worked-example payload for a given (n, r, op). */
+function pcWorkedExample(n, r, op) {
+  if (op === 'P') {
+    return {
+      heading: `Worked example: ${n}P${r} = n! / (n − r)!`,
+      lines: [
+        `${n}P${r} = ${n}! / (${n} − ${r})!`,
+        `       = ${n}! / ${n - r}!`,
+        `       = ${factorial(n)} / ${factorial(n - r)}`,
+        `       = ${factorial(n) / factorial(n - r)}`,
+      ],
+    };
   }
+  return {
+    heading: `Worked example: ${n}C${r} = n! / (r! × (n − r)!)`,
+    lines: [
+      `${n}C${r} = ${n}! / (${r}! × (${n} − ${r})!)`,
+      `       = ${factorial(n)} / (${factorial(r)} × ${factorial(n - r)})`,
+      `       = ${factorial(n)} / ${factorial(r) * factorial(n - r)}`,
+      `       = ${factorial(n) / (factorial(r) * factorial(n - r))}`,
+    ],
+  };
+}
+
+const PERMCOMB_WORD_BANK_P = [
+  (n, r) => ({ prompt: `In how many ways can ${r} books be arranged on a shelf chosen from ${n} different books?`, op: 'P' }),
+  (n, r) => ({ prompt: `Gold, silver, and bronze medals are awarded among ${n} runners. How many ways can the medals be assigned (assume r = 3)?`, op: 'P', forceR: 3 }),
+  (n, r) => ({ prompt: `How many ${r}-letter sequences (no repeated letters) can be made from ${n} distinct letters?`, op: 'P' }),
+  (n, r) => ({ prompt: `${n} people line up for a photo and ${r} of them stand at the front. In how many orders can those ${r} positions be filled?`, op: 'P' }),
+];
+const PERMCOMB_WORD_BANK_C = [
+  (n, r) => ({ prompt: `From a class of ${n} students, a committee of ${r} is to be selected. In how many ways can this be done?`, op: 'C' }),
+  (n, r) => ({ prompt: `A pizza shop offers ${n} toppings. How many different ${r}-topping pizzas can be ordered (each topping used at most once)?`, op: 'C' }),
+  (n, r) => ({ prompt: `How many handshakes occur if ${n} people each shake hands with ${r} of the others (pairs, order doesn't matter)?`, op: 'C', forceR: 2 }),
+  (n, r) => ({ prompt: `From ${n} cards, you draw ${r} at random. How many distinct hands are possible?`, op: 'C' }),
+];
+
+function generatePermCombQuestion(section, level, seen) {
+  // Decide actual section per call. For 'mixed' (Level 3 cross-section) flip a coin per question.
+  const op = section === 'mixed' ? (Math.random() < 0.5 ? 'P' : 'C') : section;
+  let { n, r } = pcPickPair(level, op);
+
+  // Try a few times to dodge repeats.
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const id = `pc-${op}-L${level}-${n}-${r}`;
+    if (!seen.includes(id)) {
+      return buildPermCombQuestion(op, level, n, r, id, section === 'mixed');
+    }
+    ({ n, r } = pcPickPair(level, op));
+  }
+  // Fallback: just return whatever we last rolled.
+  const id = `pc-${op}-L${level}-${n}-${r}-${Math.floor(Math.random() * 1e6)}`;
+  return buildPermCombQuestion(op, level, n, r, id, section === 'mixed');
+}
+
+function buildPermCombQuestion(op, level, n, r, id, isMixed) {
+  if (op === 'P') {
+    const answer = factorial(n) / factorial(n - r);
+    if (level === 1) {
+      // Fill-in: present the formula skeleton with two blanks (factorial arguments).
+      return {
+        id, op, level, n, r, answer,
+        kind: 'formula_fill',
+        prompt: `${n}P${r} = ${n}! / (${n} − ${r})!`,
+        formula: { op: 'P', n, r, blanks: ['n', 'n-r'] },
+        expected: { 'n': n, 'n-r': n - r },
+        worked: pcWorkedExample(n, r, 'P'),
+      };
+    }
+    if (level === 2) {
+      return {
+        id, op, level, n, r, answer,
+        kind: 'full_calc',
+        prompt: `Calculate ${n}P${r}.`,
+        worked: pcWorkedExample(n, r, 'P'),
+      };
+    }
+    // Level 3 — word problem
+    const tmpl = PERMCOMB_WORD_BANK_P[Math.floor(Math.random() * PERMCOMB_WORD_BANK_P.length)];
+    const built = tmpl(n, r);
+    const useR = built.forceR != null ? built.forceR : r;
+    const ans = factorial(n) / factorial(n - useR);
+    return {
+      id, op, level, n, r: useR, answer: ans,
+      kind: isMixed ? 'word_pc_mixed' : 'word',
+      prompt: built.prompt,
+      worked: pcWorkedExample(n, useR, 'P'),
+    };
+  }
+  // op === 'C'
+  const answerC = factorial(n) / (factorial(r) * factorial(n - r));
+  if (level === 1) {
+    return {
+      id, op, level, n, r, answer: answerC,
+      kind: 'formula_fill',
+      prompt: `${n}C${r} = ${n}! / (${r}! × (${n} − ${r})!)`,
+      formula: { op: 'C', n, r, blanks: ['n', 'r', 'n-r'] },
+      expected: { 'n': n, 'r': r, 'n-r': n - r },
+      worked: pcWorkedExample(n, r, 'C'),
+    };
+  }
+  if (level === 2) {
+    return {
+      id, op, level, n, r, answer: answerC,
+      kind: 'full_calc',
+      prompt: `Calculate ${n}C${r}.`,
+      worked: pcWorkedExample(n, r, 'C'),
+    };
+  }
+  const tmpl = PERMCOMB_WORD_BANK_C[Math.floor(Math.random() * PERMCOMB_WORD_BANK_C.length)];
+  const built = tmpl(n, r);
+  const useR = built.forceR != null ? built.forceR : r;
+  const ansC = factorial(n) / (factorial(useR) * factorial(n - useR));
+  return {
+    id, op, level, n, r: useR, answer: ansC,
+    kind: isMixed ? 'word_pc_mixed' : 'word',
+    prompt: built.prompt,
+    worked: pcWorkedExample(n, useR, 'C'),
+  };
 }
 
 app.get('/permcomb-api/question', (req, res) => {
-  const difficulty = req.query.difficulty || 'easy';
-  const q = permcombQuestion(difficulty);
+  let section = (req.query.section || '').toUpperCase();
+  if (section !== 'P' && section !== 'C' && section !== 'MIXED') {
+    // Legacy fallback: difficulty=easy → P/L2; medium → C/L2; hard → word; extrahard → mixed
+    const legacy = req.query.difficulty;
+    if (legacy === 'medium') section = 'C';
+    else if (legacy === 'extrahard') section = 'MIXED';
+    else section = 'P';
+  }
+  const sectionKey = section === 'MIXED' ? 'mixed' : section;
+  const level = Math.max(1, Math.min(3, parseInt(req.query.level, 10)
+    || (req.query.difficulty === 'hard' ? 3 : 2)));
+  const seen = String(req.query.seen || '').split(',').filter(Boolean);
+  const q = generatePermCombQuestion(sectionKey, level, seen);
+  // Always include `display` for client uniformity.
+  q.display = String(q.answer);
   res.json(q);
 });
 
 app.post('/permcomb-api/check', express.json(), (req, res) => {
-  const { answer, display } = req.body;
-  const userStr = (req.body.userAnswer || '').trim();
+  const { answer, display, level, kind, expected } = req.body;
+  // Level-1 formula-fill: client may post a `blanks` map of student inputs.
+  if (kind === 'formula_fill' && expected && req.body.blanks) {
+    const blanks = req.body.blanks || {};
+    let allCorrect = true;
+    for (const key of Object.keys(expected)) {
+      if (parseInt(blanks[key], 10) !== expected[key]) { allCorrect = false; break; }
+    }
+    return res.json({ correct: allCorrect, display, message: allCorrect ? 'Correct!' : 'Check the blanks.' });
+  }
+  // Default numeric path (Levels 2 & 3, including word problems).
+  const userStr = String(req.body.userAnswer || '').replace(/[\s,]/g, '');
   const userNum = parseInt(userStr, 10);
   const correct = !isNaN(userNum) && userNum === answer;
   res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect' });
