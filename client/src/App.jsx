@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.57'
-const TENALI_BUILD_DATE = '2026-04-30 09:06 IST'
+const TENALI_VERSION = '1.0.58'
+const TENALI_BUILD_DATE = '2026-04-30 09:08 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -9615,12 +9615,14 @@ const GYM_MIN_SAMPLES = 4
 // Once a skill is done it is removed from the question rotation and the UI
 // shows a tick mark next to it on the live mastery dashboard.
 const GYM_DONE_THRESHOLD = 5
-// Minimum consecutive questions the router will stay on a single gym before
-// it considers switching, and the absolute cap after which it always re-rolls.
-// Together these give the student a focused run on each skill (typically 3–6
-// questions) without context-switching every question.
+// Routing thresholds for the gym-picker. The router stays on a skill for at
+// least GYM_MIN_STREAK questions, holds the student through a "remediation"
+// window after a mistake (until they get GYM_REMEDIATION_RUN consecutive
+// correct on the same gym), and force-rerolls past GYM_MAX_STREAK so no
+// single skill can hijack the whole session.
 const GYM_MIN_STREAK = 3
-const GYM_MAX_STREAK = 6
+const GYM_MAX_STREAK = 8
+const GYM_REMEDIATION_RUN = 2
 
 /**
  * isGymDone(stat) — has the student demonstrated mastery of this skill?
@@ -9671,32 +9673,48 @@ function gymDifficultyFor(mastery) {
 }
 
 /**
- * Pick the next gym to test, balancing two goals:
- *   1. Focus — give the student a sustained run on one skill rather than
- *      whiplashing between puzzles every question.
- *   2. Coverage — keep cycling through the skills they're weakest at.
+ * Pick the next gym to test. The strategy is built around three rules,
+ * roughly in priority order:
  *
- * Done skills (see isGymDone) are never offered. If `prevKey` is supplied,
- * the router prefers to stay on it for at least GYM_MIN_STREAK consecutive
- * questions; between MIN and MAX it stays with high probability when the
- * last answer was correct (and switches sooner on a wrong answer); past
- * GYM_MAX_STREAK it always re-rolls. The re-roll is a weighted random over
- * remaining (not-done) gyms with weight = max(0.1, 1 − mastery), so weak
- * skills are favoured but mastered ones still re-appear occasionally for
- * retention checks.
+ *   1. **Floor** — In the first GYM_MIN_STREAK questions on a gym, never
+ *      switch. Students need a few reps to settle in.
  *
- * Returns the chosen GYM_PUZZLE_TYPES entry, or null when every gym is done.
+ *   2. **Remediation lock** — After a wrong answer (or a Solve), stay on
+ *      the same gym until the student has GYM_REMEDIATION_RUN consecutive
+ *      correct answers there. The intent is the opposite of "flee the
+ *      mistake": a stumble means we should give them another chance to
+ *      get it right, not move on. (Difficulty also adapts down via
+ *      gymDifficultyFor, so the remediation questions are at an easier
+ *      band, giving them a real shot at recovery.)
+ *
+ *   3. **Soft release → hard cap** — Once both rules above are satisfied,
+ *      switching becomes possible. Probability of switching ramps linearly
+ *      from 0.5 at GYM_MIN_STREAK to 0.85 at GYM_MAX_STREAK; past the cap
+ *      the router force-rerolls. The re-roll is weighted random over
+ *      not-done gyms with weight = max(0.1, 1 − mastery), so weak skills
+ *      are favoured but mastered ones still re-appear at a low rate.
+ *
+ * Done skills (see isGymDone) are filtered out entirely. Returns the chosen
+ * GYM_PUZZLE_TYPES entry, or null when every skill is done — the caller
+ * (loadNext) treats null as a signal to end the workout.
  */
-function pickNextGym(stats, prevKey, streakLen, lastCorrect) {
+function pickNextGym(stats, prevKey, streakLen, lastCorrect, consecCorrect) {
   const candidates = GYM_PUZZLE_TYPES.filter(g => !isGymDone(stats[g.key]))
   if (candidates.length === 0) return null
-  // Stickiness — prefer to stay on the previous gym while it's still active
-  // and the streak is short enough.
   const prev = prevKey ? candidates.find(g => g.key === prevKey) : null
   if (prev) {
+    // Rule 1 — floor: never switch in the first MIN_STREAK questions.
     if (streakLen < GYM_MIN_STREAK) return prev
-    if (streakLen < GYM_MAX_STREAK && lastCorrect && Math.random() < 0.7) return prev
-    if (streakLen < GYM_MAX_STREAK && !lastCorrect && Math.random() < 0.35) return prev
+    // Rule 2 — remediation lock: a wrong answer (or insufficient recovery)
+    // keeps us on the same gym so the student gets another chance.
+    if (!lastCorrect || consecCorrect < GYM_REMEDIATION_RUN) return prev
+    // Rule 3 — soft release with a linear-ramp probability of switching.
+    if (streakLen < GYM_MAX_STREAK) {
+      const t = (streakLen - GYM_MIN_STREAK) / (GYM_MAX_STREAK - GYM_MIN_STREAK)
+      const pSwitch = 0.5 + 0.35 * t
+      if (Math.random() > pSwitch) return prev
+    }
+    // Past MAX_STREAK we fall through to the weighted re-roll.
   }
   const weights = candidates.map(g => Math.max(0.1, 1 - gymMastery(stats[g.key])))
   const total = weights.reduce((a, b) => a + b, 0)
@@ -9761,6 +9779,19 @@ function GymApp({ onBack }) {
   // the latest values without depending on render timing.
   const streakRef = useRef(0)
   const lastCorrectRef = useRef(null)
+  // Number of consecutive correct answers on the current gym. Resets to 0 on
+  // any wrong answer or Solve. Drives the "remediation lock" in pickNextGym.
+  const consecCorrectRef = useRef(0)
+  // Manual-override channel for the "Practice" buttons in the live mastery
+  // dashboard. The ref drives loadNext (which reads it synchronously); the
+  // mirror state drives the UI so the row instantly shows "up next".
+  const requestedGymRef = useRef(null)
+  const [requestedKey, setRequestedKey] = useState(null)
+  const requestSkill = (gym) => {
+    if (!gym) return
+    requestedGymRef.current = gym
+    setRequestedKey(gym.key)
+  }
 
   /**
    * loadNext(): pick a gym (with streak-based stickiness, skipping any
@@ -9770,7 +9801,17 @@ function GymApp({ onBack }) {
    */
   const loadNext = async () => {
     setLoading(true); setLoadError('')
-    const gym = pickNextGym(stats, currentGym?.key, streakRef.current, lastCorrectRef.current)
+    // Manual override takes priority — if the student clicked "Practice" on
+    // a row, the next question must come from that gym (even if it's done).
+    let gym
+    if (requestedGymRef.current) {
+      gym = requestedGymRef.current
+      requestedGymRef.current = null
+      setRequestedKey(null)
+    } else {
+      gym = pickNextGym(stats, currentGym?.key, streakRef.current,
+                       lastCorrectRef.current, consecCorrectRef.current)
+    }
     if (!gym) {
       // All six skills are done — end the workout regardless of question count.
       setLoading(false)
@@ -9778,8 +9819,14 @@ function GymApp({ onBack }) {
       return
     }
     const difficulty = gymDifficultyFor(gymMastery(stats[gym.key]))
-    // Update streak: reset to 1 on a switch, increment when staying.
-    streakRef.current = currentGym && gym.key === currentGym.key ? streakRef.current + 1 : 1
+    // Update streak: reset to 1 on a switch, increment when staying. A
+    // switch also resets the consecutive-correct counter for remediation.
+    if (currentGym && gym.key === currentGym.key) {
+      streakRef.current += 1
+    } else {
+      streakRef.current = 1
+      consecCorrectRef.current = 0
+    }
     setCurrentGym(gym)
     setCurrentDifficulty(difficulty)
     try {
@@ -9812,6 +9859,9 @@ function GymApp({ onBack }) {
     // Fresh routing state for the new session.
     streakRef.current = 0
     lastCorrectRef.current = null
+    consecCorrectRef.current = 0
+    requestedGymRef.current = null
+    setRequestedKey(null)
     setCurrentGym(null)
   }
 
@@ -9883,6 +9933,9 @@ function GymApp({ onBack }) {
       // Update mastery for the gym this question came from.
       setStats(prev => updateGymStat(prev, currentGym.key, data.correct, timeTaken, currentDifficulty))
       lastCorrectRef.current = !!data.correct
+      // Maintain the consecutive-correct counter that drives remediation:
+      // a correct answer extends the run, a wrong answer resets it.
+      consecCorrectRef.current = data.correct ? consecCorrectRef.current + 1 : 0
     } catch (e) {
       submittedRef.current = false
       console.error('Failed to check Gym answer:', e)
@@ -9914,6 +9967,9 @@ function GymApp({ onBack }) {
       // A "solve" still counts as an attempt, but credited as incorrect for mastery.
       setStats(prev => updateGymStat(prev, currentGym.key, false, 0, currentDifficulty))
       lastCorrectRef.current = false
+      // Solve = the student gave up on this question, so remediation
+      // restarts from zero (same as a wrong answer).
+      consecCorrectRef.current = 0
     } catch (e) {
       submittedRef.current = false
       console.error('Failed to solve Gym question:', e)
