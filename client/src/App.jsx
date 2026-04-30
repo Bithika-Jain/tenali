@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.58'
-const TENALI_BUILD_DATE = '2026-04-30 09:08 IST'
+const TENALI_VERSION = '1.0.59'
+const TENALI_BUILD_DATE = '2026-04-30 09:11 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -9993,12 +9993,70 @@ function GymApp({ onBack }) {
     const colour = `hsl(${Math.round(mastery * 120)}, 60%, 45%)`
     const done = isGymDone(stat)
     const isCurrent = currentGym && currentGym.key === g.key && phase === 'quiz'
+    const isQueued = requestedKey === g.key && !isCurrent && phase === 'quiz'
+    // Action cell on the right end. Three mutually-exclusive states keep the
+    // column visually consistent at a fixed width:
+    //   • ACTIVE  — currently in play (read-only marker)
+    //   • UP NEXT — student has queued this skill via the Practice button
+    //   • Practice button — clickable, queues this skill as the next question
+    // On the setup/finished screens the cell is an empty placeholder of the
+    // same width so the rows stay perfectly aligned.
+    const ACTION_COL_W = 84
+    const renderActionCell = () => {
+      if (phase !== 'quiz') {
+        return <span style={{ minWidth: ACTION_COL_W, display: 'inline-block' }} />
+      }
+      if (isCurrent) {
+        return (
+          <span style={{
+            minWidth: ACTION_COL_W, textAlign: 'center', fontSize: '0.7rem',
+            fontWeight: 700, letterSpacing: '0.6px', color: 'var(--clr-accent)',
+            textTransform: 'uppercase',
+          }}>● Active</span>
+        )
+      }
+      if (isQueued) {
+        return (
+          <span style={{
+            minWidth: ACTION_COL_W, textAlign: 'center', fontSize: '0.7rem',
+            fontWeight: 700, letterSpacing: '0.6px', color: '#4caf50',
+            textTransform: 'uppercase',
+          }}>↑ Up next</span>
+        )
+      }
+      return (
+        <button
+          onClick={() => requestSkill(g)}
+          title={`Queue ${g.name} as the next question`}
+          style={{
+            minWidth: ACTION_COL_W, padding: '4px 10px', fontSize: '0.72rem',
+            fontWeight: 500, letterSpacing: '0.3px',
+            background: 'transparent', color: 'var(--clr-text-soft)',
+            border: '1px solid var(--clr-border)', borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer', transition: 'all 150ms ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--clr-accent-soft, rgba(255,165,0,0.10))'
+            e.currentTarget.style.color = 'var(--clr-accent)'
+            e.currentTarget.style.borderColor = 'var(--clr-accent)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent'
+            e.currentTarget.style.color = 'var(--clr-text-soft)'
+            e.currentTarget.style.borderColor = 'var(--clr-border)'
+          }}
+        >Practice</button>
+      )
+    }
     return (
       <div key={g.key} style={{
-        display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', padding: '4px 0',
-        opacity: done ? 0.85 : 1,
-        background: isCurrent ? 'var(--clr-accent-soft, rgba(255,165,0,0.08))' : 'transparent',
+        display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.85rem', padding: '4px 6px',
+        opacity: done && !isCurrent && !isQueued ? 0.85 : 1,
+        background: isCurrent
+          ? 'var(--clr-accent-soft, rgba(255,165,0,0.08))'
+          : isQueued ? 'rgba(76,175,80,0.08)' : 'transparent',
         borderRadius: 4,
+        transition: 'background 200ms ease',
       }}>
         <span style={{ minWidth: 18, textAlign: 'center', color: done ? '#4caf50' : 'var(--clr-text-soft)', fontWeight: 700 }}>
           {done ? '✓' : (isCurrent ? '▸' : ' ')}
@@ -10016,6 +10074,7 @@ function GymApp({ onBack }) {
         <span style={{ minWidth: 110, color: 'var(--clr-text-soft)', fontSize: '0.78rem' }}>
           {samples ? `${acc}% · ${avg}s · n=${samples}${(stat?.extrahardCorrect || 0) ? ` · X✓ ${stat.extrahardCorrect}/${GYM_DONE_THRESHOLD}` : ''}` : '— new —'}
         </span>
+        {renderActionCell()}
       </div>
     )
   }
@@ -10027,10 +10086,11 @@ function GymApp({ onBack }) {
           <p className="welcome-text">Cross-train across all six gyms</p>
           <p style={{ fontSize: '0.85rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>
             One adaptive session covering Decimals, Functions, Dot Products, Fractions, Linear Equations and Indices.
-            Questions are picked from the gyms you're <em>least</em> comfortable with, and each gym's difficulty
-            ramps up as your mastery rises. The router stays on one skill for a few questions before switching,
-            and a skill is marked done (✓) once you've nailed {GYM_DONE_THRESHOLD} extra-hard questions on it —
-            the workout ends when all six are done.
+            Each skill's difficulty rises with your mastery. The router holds a skill for at least {GYM_MIN_STREAK} questions,
+            stays on it after a mistake until you get {GYM_REMEDIATION_RUN} consecutive correct (so a stumble means
+            another shot, not a switch), and then leans toward switching as the streak grows. Click <strong>Practice</strong>
+            on any row to override the router and queue that skill next. A skill is marked done (✓) after {GYM_DONE_THRESHOLD}
+            correct extra-hard answers — the workout ends when all six are done.
           </p>
           <div style={{ margin: '14px 0' }}>{GYM_PUZZLE_TYPES.map(renderMasteryRow)}</div>
           <div className="button-row">
