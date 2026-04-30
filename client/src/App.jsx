@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.53'
-const TENALI_BUILD_DATE = '2026-04-30 08:40 IST'
+const TENALI_VERSION = '1.0.54'
+const TENALI_BUILD_DATE = '2026-04-30 08:44 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -9803,8 +9803,10 @@ function GymApp({ onBack }) {
   }
 
   const startQuiz = () => {
-    const t = Math.max(1, Math.min(200, Number(numQuestions) || DEFAULT_TOTAL))
-    setTotalQ(t); setScore(0); setResults([]); setQuestionNumber(1)
+    // No fixed question count — the workout ends when every skill is done
+    // (or when the student backs out). totalQ is kept as a generous safety
+    // cap so we don't loop forever in pathological cases.
+    setTotalQ(500); setScore(0); setResults([]); setQuestionNumber(1)
     setPhase('quiz')
     submittedRef.current = false; advancedRef.current = false
     // Fresh routing state for the new session.
@@ -9975,11 +9977,6 @@ function GymApp({ onBack }) {
             the workout ends when all six are done.
           </p>
           <div style={{ margin: '14px 0' }}>{GYM_PUZZLE_TYPES.map(renderMasteryRow)}</div>
-          <div className="question-count-row">
-            <label className="question-count-label">How many questions?</label>
-            <input className="answer-input question-count-input" type="text" value={numQuestions}
-              onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
-          </div>
           <div className="button-row">
             <button onClick={startQuiz}>Start Workout</button>
             {Object.keys(stats).length > 0 && (
@@ -9993,7 +9990,7 @@ function GymApp({ onBack }) {
 
       {phase === 'quiz' && <>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
-          <div className="progress-pill center">Question {questionNumber}/{totalQ}</div>
+          <div className="progress-pill center">Question {questionNumber}</div>
           {currentGym && <div className="progress-pill" style={{ background: 'var(--clr-accent)', color: '#fff' }}>{currentGym.name}</div>}
           {currentDifficulty && <div className="progress-pill" style={{ background: ADAPT_COLORS[currentDifficulty], color: '#fff' }}>{currentDifficulty}</div>}
           <div className="progress-pill" style={{ background: '#4caf50', color: '#fff' }}>
@@ -10035,7 +10032,7 @@ function GymApp({ onBack }) {
           {!revealed ? (
             <button onClick={handleSolve} disabled={loading} style={{ background: 'transparent', border: '1px solid var(--clr-accent)', color: 'var(--clr-accent)' }}>Solve</button>
           ) : (
-            <button onClick={advance}>{questionNumber >= totalQ ? 'Finish Workout' : 'Next Question'}</button>
+            <button onClick={advance}>Next Question</button>
           )}
         </div>
         {results.length > 0 && <ResultsTable results={results} />}
@@ -10044,7 +10041,7 @@ function GymApp({ onBack }) {
       {phase === 'finished' && (
         <div className="welcome-box">
           <p className="welcome-text">Workout complete!</p>
-          <p className="final-score">Final score: {score}/{totalQ}</p>
+          <p className="final-score">Final score: {score} correct over {results.length} questions</p>
           <div style={{ margin: '14px 0', textAlign: 'left' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--clr-text-soft)', marginBottom: 6 }}>Updated mastery:</div>
             {GYM_PUZZLE_TYPES.map(renderMasteryRow)}
