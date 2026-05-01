@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.80'
-const TENALI_BUILD_DATE = '2026-05-02 01:12 IST'
+const TENALI_VERSION = '1.0.79'
+const TENALI_BUILD_DATE = '2026-05-02 00:40 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -5945,7 +5945,7 @@ const CH5_AUTO_ADVANCE_MS = 5000
 
 // Spaced-repetition: when the student answers wrongly, the question is
 // re-inserted into the play sequence this many positions later.
-// CH5_RETRY_GAP removed: wrong answers now appended to end of playList (see SKILL.md rule #5)
+const CH5_RETRY_GAP = 4
 
 function Chapter5App({ onBack }) {
   const [progress, setProgress] = useState(ch5_loadProgress)
@@ -6037,13 +6037,12 @@ function Chapter5App({ onBack }) {
   const advance = () => {
     cancelAutoAdvance()
     if (!lesson) return
-    // If the just-finished question was wrong, append it to the end of
-    // the play list so the student must come back to it before finishing.
+    // If the just-finished question was wrong, splice it back into the play
+    // list a few items later so the student gets another shot at it.
     let workingList = playList
     if (lastWrongSrc != null) {
-      // Wrong answers go to the END of the lesson — student finishes all
-      // fresh questions first, then meets the retry cluster at the tail.
-      workingList = [...playList, lastWrongSrc]
+      const insertAt = Math.min(qIdx + CH5_RETRY_GAP, playList.length)
+      workingList = [...playList.slice(0, insertAt), lastWrongSrc, ...playList.slice(insertAt)]
       setPlayList(workingList)
       setLastWrongSrc(null)
     }
@@ -6164,14 +6163,14 @@ function Chapter5App({ onBack }) {
                     background: completed
                       ? 'linear-gradient(90deg, rgba(46,160,67,0.32) 0%, rgba(46,160,67,0.18) 100%)'
                       : inProg ? 'rgba(56,139,253,0.10)' : 'var(--clr-surface, #1c1c1f)',
-                    color: 'var(--clr-text)',
+                    color: completed ? '#a6f0b6' : 'var(--clr-text)',
                     fontWeight: completed ? 600 : 400,
                     cursor: 'pointer', fontSize: '0.95rem',
                     boxShadow: completed ? '0 0 0 1px rgba(46,160,67,0.35) inset' : 'none',
                   }}
                 >
                   <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : '○'}</span>
-                  {ch5RenderMath(l.title)}
+                  {l.title}
                   {completed && (
                     <span style={{
                       float: 'right', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.5px',
@@ -6197,7 +6196,7 @@ function Chapter5App({ onBack }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
-        <h2 style={{ marginBottom: 4 }}>{ch5RenderMath(lesson.title)}</h2>
+        <h2 style={{ marginBottom: 4 }}>{lesson.title}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
           <p key={i} style={{ lineHeight: 1.7, marginBottom: 10, fontSize: '1rem' }}>{ch5RenderMath(para)}</p>
@@ -6228,12 +6227,12 @@ function Chapter5App({ onBack }) {
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
         <h2>🎉 Lesson complete</h2>
-        <p>You finished <strong>{ch5RenderMath(lesson.title)}</strong>.</p>
+        <p>You finished <strong>{lesson.title}</strong>.</p>
         {next ? (
           <button onClick={() => startLesson(next.id)} style={{
             marginTop: 12, padding: '10px 18px', borderRadius: 8, fontSize: '1rem',
             background: 'var(--clr-accent, #2ea043)', color: 'white', border: 'none', cursor: 'pointer',
-          }}>Next: {ch5RenderMath(next.title)} →</button>
+          }}>Next: {next.title} →</button>
         ) : (
           <p style={{ marginTop: 16, fontSize: '1.05rem' }}>🎓 You've completed every lesson in Chapter 5.</p>
         )}
@@ -6259,7 +6258,7 @@ function Chapter5App({ onBack }) {
           )}
         </span>
       </div>
-      <h3 style={{ marginBottom: 8 }}>{ch5RenderMath(lesson.title)}</h3>
+      <h3 style={{ marginBottom: 8 }}>{lesson.title}</h3>
       {/* Question slider — drag to jump to any question in the play sequence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 18, textAlign: 'right' }}>1</span>
@@ -6916,8 +6915,6 @@ function Chapter6App({ onBack }) {
   const [activeId, setActiveId] = useState(null)
   const [phase, setPhase] = useState('teach')
   const [qIdx, setQIdx] = useState(0)
-  const [playList, setPlayList] = useState([])
-  const [lastWrongSrc, setLastWrongSrc] = useState(null)
   const [selectedIdx, setSelectedIdx] = useState(null)
   const [fillInput, setFillInput] = useState('')
   const [revealed, setRevealed] = useState(false)
@@ -6928,17 +6925,12 @@ function Chapter6App({ onBack }) {
   const advanceRef = useRef(() => {})
 
   const lesson = activeId ? CH6_LESSONS.find(l => l.id === activeId) : null
-  const currentSourceIdx = playList[qIdx]
-  const currentQ = lesson && currentSourceIdx != null ? lesson.questions[currentSourceIdx] : null
-  const isRetry = useMemo(() => {
-    if (currentSourceIdx == null) return false
-    return playList.slice(0, qIdx).includes(currentSourceIdx)
-  }, [playList, qIdx, currentSourceIdx])
+  const currentQ = lesson ? lesson.questions[qIdx] : null
 
   const optionOrder = useMemo(() => {
     if (!currentQ || currentQ.kind !== 'mcq') return []
-    return ch6_seededShuffle(currentQ.options.length, `${activeId}-${qIdx}-${currentSourceIdx}-${currentQ.prompt}`)
-  }, [activeId, qIdx, currentSourceIdx, currentQ])
+    return ch6_seededShuffle(currentQ.options.length, `${activeId}-${qIdx}-${currentQ.prompt}`)
+  }, [activeId, qIdx, currentQ])
   const correctDisplayIdx = useMemo(() => optionOrder.indexOf(currentQ?.correct ?? -1), [optionOrder, currentQ])
 
   useEffect(() => { ch6_saveProgress(progress) }, [progress])
@@ -6950,10 +6942,6 @@ function Chapter6App({ onBack }) {
 
   const startLesson = (id) => {
     setActiveId(id)
-    const lessonRef = CH6_LESSONS.find(l => l.id === id)
-    const initial = Array.from({ length: lessonRef.questions.length }, (_, i) => i)
-    setPlayList(initial)
-    setLastWrongSrc(null)
     const p = progress[id] || {}
     if (p.teachSeen) { setPhase('practice'); setQIdx(p.qIdx || 0) }
     else { setPhase('teach'); setQIdx(0) }
@@ -6964,7 +6952,6 @@ function Chapter6App({ onBack }) {
     setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: 0 } }))
     setPhase('practice'); setQIdx(0)
     setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-    setLastWrongSrc(null)
   }
 
   const submitFill = () => {
@@ -6972,15 +6959,13 @@ function Chapter6App({ onBack }) {
     if (revealed) { advance(); return }
     const ok = ch6_checkFill(currentQ, fillInput)
     setIsCorrect(ok); setRevealed(true)
-    setLastWrongSrc(ok ? null : currentSourceIdx)
   }
 
   const pickMcq = (displayIdx) => {
     if (!currentQ || revealed || currentQ.kind !== 'mcq') return
-    const optSourceIdx = optionOrder[displayIdx]
-    const ok = optSourceIdx === currentQ.correct
+    const sourceIdx = optionOrder[displayIdx]
+    const ok = sourceIdx === currentQ.correct
     setSelectedIdx(displayIdx); setIsCorrect(ok); setRevealed(true)
-    setLastWrongSrc(ok ? null : currentSourceIdx)
   }
 
   const cancelAutoAdvance = () => {
@@ -6990,25 +6975,15 @@ function Chapter6App({ onBack }) {
 
   const advance = () => {
     cancelAutoAdvance()
-    if (!lesson) return
-    let workingList = playList
-    if (lastWrongSrc != null) {
-      // Wrong answers go to the END of the lesson — student finishes all
-      // fresh questions first, then meets the retry cluster at the tail.
-      // Lesson cannot complete until every wrong-answered question has
-      // eventually been answered correctly (each wrong attempt re-appends).
-      workingList = [...playList, lastWrongSrc]
-      setPlayList(workingList)
-      setLastWrongSrc(null)
-    }
     const next = qIdx + 1
-    if (next >= workingList.length) {
+    if (!lesson) return
+    if (next >= lesson.questions.length) {
       setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: lesson.questions.length, completed: true } }))
       setPhase('done')
     } else {
       setQIdx(next)
       setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-      setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: Math.min(lesson.questions.length, next) } }))
+      setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: next } }))
     }
   }
   advanceRef.current = advance
@@ -7016,12 +6991,12 @@ function Chapter6App({ onBack }) {
   const jumpToQuestion = (i) => {
     cancelAutoAdvance()
     if (!lesson) return
-    const clamped = Math.max(0, Math.min(playList.length - 1, i))
-    setQIdx(clamped); setLastWrongSrc(null)
+    const clamped = Math.max(0, Math.min(lesson.questions.length - 1, i))
+    setQIdx(clamped)
     setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
     setProgress(p => {
       const cur = p[activeId] || {}
-      const saved = Math.max(cur.qIdx || 0, Math.min(lesson.questions.length, clamped))
+      const saved = Math.max(cur.qIdx || 0, clamped)
       return { ...p, [activeId]: { ...cur, teachSeen: true, qIdx: saved } }
     })
   }
@@ -7044,11 +7019,7 @@ function Chapter6App({ onBack }) {
     setAutoCountdown(total)
     autoTimerRef.current = setInterval(() => {
       setAutoCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(autoTimerRef.current); autoTimerRef.current = null
-          advanceRef.current()
-          return 0
-        }
+        if (prev <= 1) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; advanceRef.current(); return 0 }
         return prev - 1
       })
     }, 1000)
@@ -7076,7 +7047,6 @@ function Chapter6App({ onBack }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, qIdx, revealed, currentQ, fillInput, optionOrder])
 
-  // ────────── Overview ──────────
   if (!activeId) {
     const total = CH6_LESSONS.length
     const done = CH6_LESSONS.filter(l => progress[l.id]?.completed).length
@@ -7091,8 +7061,8 @@ function Chapter6App({ onBack }) {
           Cambridge IGCSE Mathematics · {done}/{total} lessons complete
         </p>
         <p style={{ opacity: 0.85, marginTop: 8 }}>
-          Pick the next lesson. Each one starts with a short explanation, then a stream of multiple-choice and fill-in-the-blank
-          questions — easy warm-ups first, then the actual chapter exercise problems.
+          Pick any lesson — they are all unlocked. Each starts with an explanation and worked example, then a stream of MCQ
+          and fill-in questions ramping from easy warm-ups to the actual chapter exercise problems.
         </p>
         <ol style={{ listStyle: 'none', padding: 0, marginTop: 16 }}>
           {CH6_LESSONS.map((l) => {
@@ -7113,14 +7083,14 @@ function Chapter6App({ onBack }) {
                     background: completed
                       ? 'linear-gradient(90deg, rgba(46,160,67,0.32) 0%, rgba(46,160,67,0.18) 100%)'
                       : inProg ? 'rgba(56,139,253,0.10)' : 'var(--clr-surface, #1c1c1f)',
-                    color: 'var(--clr-text)',
+                    color: completed ? '#a6f0b6' : 'var(--clr-text)',
                     fontWeight: completed ? 600 : 400,
                     cursor: 'pointer', fontSize: '0.95rem',
                     boxShadow: completed ? '0 0 0 1px rgba(46,160,67,0.35) inset' : 'none',
                   }}
                 >
                   <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : '○'}</span>
-                  {ch6RenderMath(l.title)}
+                  {l.title}
                   {completed && (
                     <span style={{
                       float: 'right', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.5px',
@@ -7139,15 +7109,14 @@ function Chapter6App({ onBack }) {
     )
   }
 
-  // ────────── Teach ──────────
   if (phase === 'teach') {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
-        <h2 style={{ marginBottom: 4 }}>{ch6RenderMath(lesson.title)}</h2>
-        <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{ch6RenderMath(lesson.teach.heading)}</h3>
+        <h2 style={{ marginBottom: 4 }}>{lesson.title}</h2>
+        <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
           <p key={i} style={{ lineHeight: 1.7, marginBottom: 10, fontSize: '1rem' }}>{ch6RenderMath(para)}</p>
         ))}
@@ -7167,7 +7136,6 @@ function Chapter6App({ onBack }) {
     )
   }
 
-  // ────────── Done ──────────
   if (phase === 'done') {
     const idx = CH6_LESSONS.findIndex(l => l.id === activeId)
     const next = CH6_LESSONS[idx + 1]
@@ -7177,12 +7145,12 @@ function Chapter6App({ onBack }) {
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
         <h2>🎉 Lesson complete</h2>
-        <p>You finished <strong>{ch6RenderMath(lesson.title)}</strong>.</p>
+        <p>You finished <strong>{lesson.title}</strong>.</p>
         {next ? (
           <button onClick={() => startLesson(next.id)} style={{
             marginTop: 12, padding: '10px 18px', borderRadius: 8, fontSize: '1rem',
             background: 'var(--clr-accent, #2ea043)', color: 'white', border: 'none', cursor: 'pointer',
-          }}>Next: {ch6RenderMath(next.title)} →</button>
+          }}>Next: {next.title} →</button>
         ) : (
           <p style={{ marginTop: 16, fontSize: '1.05rem' }}>🎓 You've completed every lesson in Chapter 6.</p>
         )}
@@ -7194,36 +7162,25 @@ function Chapter6App({ onBack }) {
     )
   }
 
-  // ────────── Practice ──────────
-  const sliderMax = Math.max(1, playList.length)
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
         <button className="back-button" onClick={backToOverview}>← Lessons</button>
         <button className="back-button" onClick={() => setPhase('teach')}>📖 Re-read teach</button>
         <span style={{ marginLeft: 'auto', fontSize: '0.85rem', opacity: 0.75 }}>
-          Question {qIdx + 1} / {sliderMax}
-          {sliderMax > lesson.questions.length && (
-            <span style={{ marginLeft: 6, color: '#f0a020' }}>· {sliderMax - lesson.questions.length} retry queued</span>
-          )}
+          Question {qIdx + 1} / {lesson.questions.length}
         </span>
       </div>
-      <h3 style={{ marginBottom: 8 }}>{ch6RenderMath(lesson.title)}</h3>
+      <h3 style={{ marginBottom: 8 }}>{lesson.title}</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 18, textAlign: 'right' }}>1</span>
         <input
-          type="range"
-          min={1}
-          max={sliderMax}
-          value={qIdx + 1}
+          type="range" min={1} max={lesson.questions.length} value={qIdx + 1}
           onChange={e => jumpToQuestion(parseInt(e.target.value, 10) - 1)}
           aria-label="Jump to question"
-          style={{
-            flex: 1, accentColor: 'var(--clr-accent, #2ea043)',
-            cursor: 'pointer', height: 22,
-          }}
+          style={{ flex: 1, accentColor: 'var(--clr-accent, #2ea043)', cursor: 'pointer', height: 22 }}
         />
-        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 22 }}>{sliderMax}</span>
+        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 22 }}>{lesson.questions.length}</span>
       </div>
 
       <div style={{
@@ -7231,15 +7188,7 @@ function Chapter6App({ onBack }) {
         border: '1px solid var(--clr-border, #333)', marginBottom: 16,
         fontSize: '1.25rem', lineHeight: 2.1, textAlign: 'center',
         display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80,
-        position: 'relative',
       }}>
-        {isRetry && (
-          <span style={{
-            position: 'absolute', top: 8, right: 12, fontSize: '0.7rem', fontWeight: 700,
-            letterSpacing: '0.5px', color: '#f0a020', background: 'rgba(240,160,32,0.15)',
-            border: '1px solid rgba(240,160,32,0.45)', padding: '2px 8px', borderRadius: 10,
-          }}>↻ RETRY</span>
-        )}
         <span>{ch6RenderMath(currentQ.prompt)}</span>
       </div>
 
@@ -7328,9 +7277,7 @@ function Chapter6App({ onBack }) {
             <button onClick={advance} style={{
               padding: '12px 28px', borderRadius: 8, background: 'var(--clr-accent, #2ea043)',
               color: 'white', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 600,
-            }}>
-              {qIdx + 1 === lesson.questions.length ? 'Finish lesson →' : 'Next →'}
-            </button>
+            }}>{qIdx + 1 === lesson.questions.length ? 'Finish lesson →' : 'Next →'}</button>
             <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>
               auto-advance in {autoCountdown}s · or press <kbd style={{ padding: '1px 6px', border: '1px solid var(--clr-border, #555)', borderRadius: 4, fontSize: '0.78rem' }}>Enter</kbd>
             </span>
@@ -8247,7 +8194,7 @@ function ch7RenderMath(text) {
 }
 
 const CH7_AUTO_ADVANCE_MS = 5000
-// CH7_RETRY_GAP removed: wrong answers now appended to end of playList (see SKILL.md rule #5)
+const CH7_RETRY_GAP = 4
 
 function Chapter7App({ onBack }) {
   const [progress, setProgress] = useState(ch7_loadProgress)
@@ -9475,7 +9422,7 @@ function ch8RenderMath(text) {
 }
 
 const CH8_AUTO_ADVANCE_MS = 5000
-// CH8_RETRY_GAP removed: wrong answers now appended to end of playList (see SKILL.md rule #5)
+const CH8_RETRY_GAP = 4
 
 function Chapter8App({ onBack }) {
   const [progress, setProgress] = useState(ch8_loadProgress)
@@ -9559,9 +9506,8 @@ function Chapter8App({ onBack }) {
     if (!lesson) return
     let workingList = playList
     if (lastWrongSrc != null) {
-      // Wrong answers go to the END of the lesson — student finishes all
-      // fresh questions first, then meets the retry cluster at the tail.
-      workingList = [...playList, lastWrongSrc]
+      const insertAt = Math.min(qIdx + CH8_RETRY_GAP, playList.length)
+      workingList = [...playList.slice(0, insertAt), lastWrongSrc, ...playList.slice(insertAt)]
       setPlayList(workingList)
       setLastWrongSrc(null)
     }
@@ -9677,14 +9623,14 @@ function Chapter8App({ onBack }) {
                     background: completed
                       ? 'linear-gradient(90deg, rgba(46,160,67,0.32) 0%, rgba(46,160,67,0.18) 100%)'
                       : inProg ? 'rgba(56,139,253,0.10)' : 'var(--clr-surface, #1c1c1f)',
-                    color: 'var(--clr-text)',
+                    color: completed ? '#a6f0b6' : 'var(--clr-text)',
                     fontWeight: completed ? 600 : 400,
                     cursor: 'pointer', fontSize: '0.95rem',
                     boxShadow: completed ? '0 0 0 1px rgba(46,160,67,0.35) inset' : 'none',
                   }}
                 >
                   <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : '○'}</span>
-                  {ch8RenderMath(l.title)}
+                  {l.title}
                   {completed && (
                     <span style={{
                       float: 'right', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.5px',
@@ -9710,7 +9656,7 @@ function Chapter8App({ onBack }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
-        <h2 style={{ marginBottom: 4 }}>{ch8RenderMath(lesson.title)}</h2>
+        <h2 style={{ marginBottom: 4 }}>{lesson.title}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{ch8RenderMath(lesson.teach.heading)}</h3>
         {lesson.teach.body.map((para, i) => (
           <p key={i} style={{ lineHeight: 1.7, marginBottom: 10, fontSize: '1rem' }}>{ch8RenderMath(para)}</p>
@@ -9741,12 +9687,12 @@ function Chapter8App({ onBack }) {
           <button className="back-button" onClick={backToOverview}>← Lessons</button>
         </div>
         <h2>🎉 Lesson complete</h2>
-        <p>You finished <strong>{ch8RenderMath(lesson.title)}</strong>.</p>
+        <p>You finished <strong>{lesson.title}</strong>.</p>
         {next ? (
           <button onClick={() => startLesson(next.id)} style={{
             marginTop: 12, padding: '10px 18px', borderRadius: 8, fontSize: '1rem',
             background: 'var(--clr-accent, #2ea043)', color: 'white', border: 'none', cursor: 'pointer',
-          }}>Next: {ch8RenderMath(next.title)} →</button>
+          }}>Next: {next.title} →</button>
         ) : (
           <p style={{ marginTop: 16, fontSize: '1.05rem' }}>🎓 You've completed every lesson in Chapter 8.</p>
         )}
@@ -9772,7 +9718,7 @@ function Chapter8App({ onBack }) {
           )}
         </span>
       </div>
-      <h3 style={{ marginBottom: 8 }}>{ch8RenderMath(lesson.title)}</h3>
+      <h3 style={{ marginBottom: 8 }}>{lesson.title}</h3>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 18, textAlign: 'right' }}>1</span>
         <input
@@ -9885,1369 +9831,6 @@ function Chapter8App({ onBack }) {
               <div style={{ marginTop: 8, opacity: 0.9, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                 <strong>Working:</strong>
                 <span>{ch8RenderMath(currentQ.solution)}</span>
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, justifyContent: 'center' }}>
-            <button onClick={advance} style={{
-              padding: '12px 28px', borderRadius: 8, background: 'var(--clr-accent, #2ea043)',
-              color: 'white', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 600,
-            }}>
-              {qIdx + 1 === lesson.questions.length ? 'Finish lesson →' : 'Next →'}
-            </button>
-            <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>
-              auto-advance in {autoCountdown}s · or press <kbd style={{ padding: '1px 6px', border: '1px solid var(--clr-border, #555)', borderRadius: 4, fontSize: '0.78rem' }}>Enter</kbd>
-            </span>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-/* =====================================================================
- *  Chapter9App — Cambridge IGCSE Chapter 9 (Sequences, Surds and Sets)
- *
- *  Mounted at /chapter9. Same UX as Chapter5App–Chapter8App: ordered
- *  chain of lessons, every one unlocked from the start, slider to jump
- *  questions, MCQ with 1-9 keys + fill-in fallbacks, 5s auto-advance,
- *  completed lessons go green (with readable text), wrong answers
- *  appended to END of playList. See Tenali/skills/igcse-chapter/SKILL.md
- *  for the full pattern.
- * ===================================================================== */
-
-const CH9_OPTION_LABEL = ['1','2','3','4','5','6','7','8','9']
-
-function ch9_seededShuffle(n, key) {
-  let h = 2166136261
-  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) }
-  const rand = () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967295 }
-  const arr = Array.from({ length: n }, (_, i) => i)
-  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]] }
-  return arr
-}
-
-function ch9_gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b] } return a || 1 }
-function ch9_reduce(n, d) {
-  if (d === 0) return null
-  if (d < 0) { n = -n; d = -d }
-  const g = ch9_gcd(n, d)
-  return { n: n / g, d: d / g }
-}
-function ch9_parseFrac(raw) {
-  if (raw == null) return null
-  let s = String(raw).trim().replace(/\\frac\{(-?\d+)\}\{(-?\d+)\}/g, '$1/$2').replace(/\s+/g, ' ').replace(/–/g, '-')
-  if (!s) return null
-  const mixed = s.match(/^(-?)(\d+)\s+(\d+)\s*\/\s*(\d+)$/)
-  if (mixed) {
-    const sign = mixed[1] === '-' ? -1 : 1
-    const w = +mixed[2], n = +mixed[3], d = +mixed[4]
-    if (d === 0) return null
-    return ch9_reduce(sign * (w * d + n), d)
-  }
-  const frac = s.match(/^(-?\d+)\s*\/\s*(-?\d+)$/)
-  if (frac) {
-    const n = +frac[1], d = +frac[2]
-    if (d === 0) return null
-    return ch9_reduce(n, d)
-  }
-  const num = Number(s)
-  if (Number.isFinite(num)) {
-    if (Number.isInteger(num)) return { n: num, d: 1 }
-    const sign = num < 0 ? -1 : 1
-    const decimals = (s.split('.')[1] || '').length
-    const denom = Math.pow(10, decimals)
-    return ch9_reduce(sign * Math.round(Math.abs(num) * denom), denom)
-  }
-  return null
-}
-function ch9_fracEqual(a, b) { return a && b && a.n === b.n && a.d === b.d }
-function ch9_normalizeNumStr(s) {
-  return String(s).trim().replace(/[$,\s%]/g, '').replace(/–/g, '-')
-}
-function ch9_numEqual(user, expected, tol) {
-  const u = parseFloat(ch9_normalizeNumStr(user))
-  if (!Number.isFinite(u)) return false
-  const t = tol != null ? tol : Math.max(0.005, Math.abs(expected) * 0.005)
-  return Math.abs(u - expected) <= t
-}
-
-function ch9_checkFill(q, raw) {
-  if (!raw || !raw.trim()) return false
-  switch (q.kind) {
-    case 'fill-num': return ch9_numEqual(raw, q.answer, q.tol)
-    case 'fill-frac': {
-      const u = ch9_parseFrac(raw)
-      const e = ch9_parseFrac(q.answer)
-      return ch9_fracEqual(u, e)
-    }
-    case 'fill-text': return raw.trim().toLowerCase() === String(q.answer).trim().toLowerCase()
-    default: return false
-  }
-}
-
-// --- Lesson catalogue ---------------------------------------------------
-// Cambridge IGCSE Chapter 9 — Sequences, Surds and Sets
-// Sections covered: 9.1 Sequences (term-to-term rules, linear/quadratic
-// nth terms, special sequences, subscript notation); 9.2 Rational and
-// irrational numbers (inc. recurring decimals → fractions); 9.3 Surds
-// (simplify, +/-, ×/÷, rationalise); 9.4 Sets (notation, ∪/∩/⊂, Venn,
-// set builder). See uploads PDF p. 265-311.
-const CH9_LESSONS = [
-  // ───────────────────── L1: Term-to-term rules ────────────────────────
-  {
-    id: 'L1',
-    title: 'Lesson 1 · Term-to-term rules',
-    teach: {
-      heading: 'Spot the rule that takes one term to the next',
-      body: [
-        'A SEQUENCE is an ordered list of numbers (or shapes) called TERMS, formed by some rule. The rule that says how to get from one term to the next is the TERM-TO-TERM rule.',
-        'Common term-to-term rules: ADD a constant (e.g. 2, 5, 8, 11, … add 3), SUBTRACT a constant (e.g. 30, 25, 20, … subtract 5), MULTIPLY by a constant (e.g. 2, 6, 18, 54, … times 3), DIVIDE by a constant.',
-        'Some sequences combine rules — Fibonacci adds the previous TWO terms (1, 1, 2, 3, 5, 8, 13, …).',
-        'To CONTINUE a sequence: spot the rule, then apply it to the last term you know.',
-      ],
-      example: 'Sequence: 2, 4, 8, 16, … rule is "multiply by 2"; next term is 16 \\times 2 = 32.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Next term in 5, 8, 11, 14, …?',
-        options: ['17', '18', '19', '15'], correct: 0,
-        solution: 'Add 3: 14 + 3 = 17.' },
-      { kind: 'mcq', prompt: 'Next term in 1, 2, 4, 8, 16, …?',
-        options: ['32', '24', '20', '64'], correct: 0,
-        solution: 'Multiply by 2: 16 \\times 2 = 32.' },
-      { kind: 'mcq', prompt: 'Next term in 50, 45, 40, 35, …?',
-        options: ['30', '25', '40', '32'], correct: 0,
-        solution: 'Subtract 5: 35 - 5 = 30.' },
-      { kind: 'mcq', prompt: 'Next term in 3, 9, 27, 81, …?',
-        options: ['243', '162', '108', '324'], correct: 0,
-        solution: 'Multiply by 3: 81 \\times 3 = 243.' },
-      { kind: 'mcq', prompt: 'Next term in 1, 1, 2, 3, 5, 8, …? (Fibonacci)',
-        options: ['13', '11', '16', '12'], correct: 0,
-        solution: 'Add the two previous: 5 + 8 = 13.' },
-      { kind: 'mcq', prompt: 'Term-to-term rule for 1, 4, 16, 64, …?',
-        options: ['Multiply by 4', 'Add 3 then 12 then 48', 'Multiply by 3', 'Square the previous'], correct: 0,
-        solution: '64 / 16 = 4 and 16 / 4 = 4 and 4 / 1 = 4.' },
-      { kind: 'mcq', prompt: 'Next term in 100, 50, 25, 12.5, …?',
-        options: ['6.25', '0', '6', '5'], correct: 0,
-        solution: 'Divide by 2: 12.5 / 2 = 6.25.' },
-      { kind: 'fill-num', prompt: 'Next term in 7, 11, 15, 19, …?', answer: 23,
-        solution: 'Add 4.' },
-      { kind: 'mcq', prompt: 'Next term in 1, 4, 9, 16, 25, …?',
-        options: ['36', '30', '49', '32'], correct: 0,
-        solution: 'These are square numbers 1², 2², 3², 4², 5²; next is 6² = 36.' },
-      { kind: 'fill-num', prompt: 'Next term in 2, 6, 18, 54, …?', answer: 162,
-        solution: 'Multiply by 3.' },
-    ],
-  },
-
-  // ───────────────────── L2: Linear sequences and the nth term ─────────
-  {
-    id: 'L2',
-    title: 'Lesson 2 · Linear sequences & the nth term',
-    teach: {
-      heading: 'Sequences that go up by the same amount each time',
-      body: [
-        'A LINEAR sequence increases (or decreases) by the same constant amount each step. That constant is called the COMMON DIFFERENCE, d.',
-        'For a linear sequence, the nth term has the form T_n = an + b, where a is the common difference and b is whatever you need to add to get the first term right.',
-        'Recipe to find the nth term:',
-        'Step 1: Find the common difference a. The nth term starts as a \\times n.',
-        'Step 2: Compare a \\times 1 to the actual first term, T_1. The difference (T_1 - a) is b.',
-        'So T_n = an + (T_1 - a). Always check by substituting n = 1 and n = 2.',
-      ],
-      example: 'Sequence 6, 10, 14, 18, … Common difference = 4. T_1 = 6, but 4 \\times 1 = 4, so add 2. nth term = 4n + 2.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Common difference of 3, 7, 11, 15, …?',
-        options: ['4', '3', '7', '8'], correct: 0,
-        solution: '7 - 3 = 4.' },
-      { kind: 'mcq', prompt: 'nth term of 3, 7, 11, 15, …?',
-        options: ['4n - 1', '4n + 3', '3n + 4', 'n + 4'], correct: 0,
-        solution: 'a = 4. 4(1) - 1 = 3 ✓.' },
-      { kind: 'mcq', prompt: 'nth term of 5, 8, 11, 14, …?',
-        options: ['3n + 2', '3n + 5', 'n + 3', '5n + 3'], correct: 0,
-        solution: 'a = 3. 3(1) + 2 = 5 ✓.' },
-      { kind: 'mcq', prompt: 'nth term of 6, 10, 14, 18, …?',
-        options: ['4n + 2', '4n + 6', '6n + 4', '2n + 4'], correct: 0,
-        solution: 'a = 4, 4(1) + 2 = 6 ✓.' },
-      { kind: 'mcq', prompt: 'nth term of 2, 5, 8, 11, …?',
-        options: ['3n - 1', '3n + 2', '2n + 3', 'n + 3'], correct: 0,
-        solution: 'a = 3. 3(1) - 1 = 2 ✓.' },
-      { kind: 'mcq', prompt: 'nth term of 30, 27, 24, 21, …? (decreasing)',
-        options: ['33 - 3n', '30 - 3n', '3n + 30', '-3n + 33'], correct: 0,
-        solution: 'a = -3. 33 - 3(1) = 30 ✓.' },
-      { kind: 'fill-num', prompt: 'For T_n = 2n + 5, what is T_1?', answer: 7,
-        solution: '2(1) + 5 = 7.' },
-      { kind: 'fill-num', prompt: 'For T_n = 4n - 1, what is T_3?', answer: 11,
-        solution: '4(3) - 1 = 11.' },
-      { kind: 'mcq', prompt: 'nth term of 1, 5, 9, 13, …?',
-        options: ['4n - 3', '4n + 1', 'n + 4', '4n - 1'], correct: 0,
-        solution: 'a = 4, 4(1) - 3 = 1 ✓.' },
-      { kind: 'mcq', prompt: 'nth term of -2, 1, 4, 7, …?',
-        options: ['3n - 5', '3n + 2', '3n - 2', '-3n + 1'], correct: 0,
-        solution: 'a = 3, 3(1) - 5 = -2 ✓.' },
-    ],
-  },
-
-  // ───────────────────── L3: Using nth term to find specific terms ─────
-  {
-    id: 'L3',
-    title: 'Lesson 3 · Using the nth term',
-    teach: {
-      heading: 'Plug n in — or solve for n',
-      body: [
-        'Once you have the nth term as a formula in n, you can find any term you like by SUBSTITUTING the position number.',
-        'To find the 50th term, plug n = 50 into the formula.',
-        'To find WHICH term has a particular VALUE, set the formula equal to that value and SOLVE for n. If n is not a whole positive integer, the value is NOT in the sequence.',
-        'Example: T_n = 4n + 2. Is 125 in the sequence? Solve 4n + 2 = 125 → n = 30.75. Not an integer, so 125 is NOT in the sequence.',
-      ],
-      example: 'Sequence 6, 10, 14, … T_n = 4n + 2. The 40th term: 4(40) + 2 = 162.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'T_n = 3n + 1. Find T_10.',
-        options: ['31', '30', '34', '21'], correct: 0,
-        solution: '3(10) + 1 = 31.' },
-      { kind: 'mcq', prompt: 'T_n = 5n - 2. Find T_8.',
-        options: ['38', '40', '42', '13'], correct: 0,
-        solution: '5(8) - 2 = 38.' },
-      { kind: 'mcq', prompt: 'T_n = 2n + 7. Find T_25.',
-        options: ['57', '50', '32', '60'], correct: 0,
-        solution: '2(25) + 7 = 57.' },
-      { kind: 'fill-num', prompt: 'T_n = 4n + 2. Find T_40.', answer: 162,
-        solution: '4(40) + 2 = 162.' },
-      { kind: 'mcq', prompt: 'T_n = 4n + 2. Is 50 in the sequence?',
-        options: ['Yes — it is T_12', 'No', 'Yes — it is T_50', 'Yes — it is T_4'], correct: 0,
-        solution: '4n + 2 = 50 \\to n = 12. Whole number, so YES.' },
-      { kind: 'mcq', prompt: 'T_n = 4n + 2. Is 125 in the sequence?',
-        options: ['No', 'Yes', 'Only if n = 31', 'Only if n = 32'], correct: 0,
-        solution: '4n + 2 = 125 \\to n = 30.75 — not a whole number, so NO.' },
-      { kind: 'mcq', prompt: 'T_n = 3n - 1. Which term is 80?',
-        options: ['T_27', 'T_26', 'T_80', 'Not a term'], correct: 0,
-        solution: '3n - 1 = 80 \\to n = 27.' },
-      { kind: 'mcq', prompt: 'T_n = 7n + 3. Which term is 80?',
-        options: ['T_11', 'T_77', 'T_10', 'Not a term'], correct: 0,
-        solution: '7n + 3 = 80 \\to n = 11.' },
-      { kind: 'fill-num', prompt: 'T_n = 2n + 5. Which term is 23?', answer: 9,
-        solution: '2n + 5 = 23 \\to n = 9.' },
-      { kind: 'mcq', prompt: 'T_n = 3n + 2. Find the 100th term.',
-        options: ['302', '300', '303', '102'], correct: 0,
-        solution: '3(100) + 2 = 302.' },
-    ],
-  },
-
-  // ───────────────────── L4: Quadratic sequences ───────────────────────
-  {
-    id: 'L4',
-    title: 'Lesson 4 · Quadratic sequences',
-    teach: {
-      heading: 'Second differences are constant',
-      body: [
-        'In a LINEAR sequence the FIRST DIFFERENCES (between consecutive terms) are constant.',
-        'In a QUADRATIC sequence the first differences are NOT constant, but the SECOND differences (the differences of the first differences) ARE constant.',
-        'A quadratic sequence has nth term of the form T_n = an^2 + bn + c.',
-        'Quick rule: if the constant SECOND difference equals 2k, then a = k. (Second difference = 2 means a = 1; second difference = 4 means a = 2; second difference = 6 means a = 3, etc.)',
-        'Once you know a, find b and c by setting T_1 and T_2 equal to the formula and solving the resulting two equations.',
-      ],
-      example: 'Sequence 2, 5, 10, 17, 26 — first differences 3, 5, 7, 9; second differences 2, 2, 2. So a = 1. T_1: a + b + c = 2 \\to 1 + b + c = 2. T_2: 4a + 2b + c = 5 \\to 4 + 2b + c = 5. Subtract: 3 + b = 3 \\to b = 0, c = 1. So T_n = n^2 + 1.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Sequence 1, 4, 9, 16, 25 — what type?',
-        options: ['Quadratic (squares)', 'Linear', 'Cubic', 'Geometric'], correct: 0,
-        solution: 'Square numbers; first diffs 3,5,7,9; second diffs 2,2,2 → quadratic.' },
-      { kind: 'mcq', prompt: 'Second differences of 3, 8, 15, 24, 35?',
-        options: ['2', '5', '6', '4'], correct: 0,
-        solution: 'First diffs: 5,7,9,11. Second diffs: 2,2,2.' },
-      { kind: 'mcq', prompt: 'Second differences of 2, 7, 16, 29, 46?',
-        options: ['4', '2', '5', '7'], correct: 0,
-        solution: 'First diffs: 5,9,13,17. Second diffs: 4,4,4.' },
-      { kind: 'mcq', prompt: 'Sequence with constant 2nd difference of 6 — what is the coefficient a in an^2?',
-        options: ['3', '2', '6', '1.5'], correct: 0,
-        solution: '2a = 6 \\to a = 3.' },
-      { kind: 'mcq', prompt: 'nth term of square numbers 1, 4, 9, 16, …?',
-        options: ['n^2', '2n^2', 'n + 3', 'n^2 - 1'], correct: 0,
-        solution: 'T_1 = 1 = 1², T_2 = 4 = 2², …' },
-      { kind: 'mcq', prompt: 'nth term of 2, 5, 10, 17, 26, …?',
-        options: ['n^2 + 1', '2n + 0', 'n + 1', 'n^2 - 1'], correct: 0,
-        solution: 'See worked example in teach panel.' },
-      { kind: 'mcq', prompt: 'nth term of 3, 8, 15, 24, 35, …?',
-        options: ['n^2 + 2n', 'n^2 + 1', 'n^2 + n', 'n(n+1)'], correct: 0,
-        solution: '2nd diff = 2 \\to a = 1. T_1 = 1 + b + c = 3, T_2 = 4 + 2b + c = 8 \\to 3 + b = 5 \\to b = 2, c = 0.' },
-      { kind: 'mcq', prompt: 'nth term of 5, 8, 13, 20, 29, … (2nd diffs all 2)?',
-        options: ['n^2 + 4', 'n^2 + 3', 'n^2', '2n^2'], correct: 0,
-        solution: 'a = 1. T_1 = 1 + b + c = 5, T_2 = 4 + 2b + c = 8 \\to 3 + b = 3 \\to b = 0, c = 4.' },
-      { kind: 'fill-num', prompt: 'For T_n = n^2 + 1, find T_10.', answer: 101,
-        solution: '10^2 + 1 = 101.' },
-      { kind: 'fill-num', prompt: 'For T_n = n^2 + n, find T_5.', answer: 30,
-        solution: '25 + 5 = 30.' },
-    ],
-  },
-
-  // ───────────────────── L5: Special sequences ─────────────────────────
-  {
-    id: 'L5',
-    title: 'Lesson 5 · Special sequences',
-    teach: {
-      heading: 'Squares, cubes, triangulars, Fibonacci, exponentials',
-      body: [
-        'Some sequences come up so often they are worth recognising on sight.',
-        'SQUARE numbers: T_n = n^2 → 1, 4, 9, 16, 25, 36, …',
-        'CUBE numbers: T_n = n^3 → 1, 8, 27, 64, 125, …',
-        'TRIANGULAR numbers: T_n = \\frac{1}{2} n(n+1) → 1, 3, 6, 10, 15, 21, …',
-        'FIBONACCI: each term is the SUM of the previous two; 1, 1, 2, 3, 5, 8, 13, 21, …',
-        'EXPONENTIAL (geometric): T_n = a \\times r^n → 5, 10, 20, 40, 80, … with a = 5, r = 2.',
-      ],
-      example: 'Triangular numbers: T_5 = \\frac{1}{2}(5)(6) = 15.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: '4th square number?',
-        options: ['16', '8', '12', '20'], correct: 0,
-        solution: '4^2 = 16.' },
-      { kind: 'mcq', prompt: '4th cube number?',
-        options: ['64', '16', '32', '125'], correct: 0,
-        solution: '4^3 = 64.' },
-      { kind: 'mcq', prompt: '5th triangular number?',
-        options: ['15', '10', '21', '20'], correct: 0,
-        solution: '\\frac{1}{2}(5)(6) = 15.' },
-      { kind: 'mcq', prompt: '6th Fibonacci number (starting 1, 1, 2, 3, 5, …)?',
-        options: ['8', '7', '13', '11'], correct: 0,
-        solution: '5 + 3 = 8.' },
-      { kind: 'mcq', prompt: '7th Fibonacci?',
-        options: ['13', '11', '8', '21'], correct: 0,
-        solution: '8 + 5 = 13.' },
-      { kind: 'mcq', prompt: 'Next term in 5, 10, 20, 40, …?',
-        options: ['80', '60', '50', '160'], correct: 0,
-        solution: 'Multiply by 2.' },
-      { kind: 'fill-num', prompt: '6th square number.', answer: 36,
-        solution: '6^2 = 36.' },
-      { kind: 'fill-num', prompt: '5th cube number.', answer: 125,
-        solution: '5^3 = 125.' },
-      { kind: 'fill-num', prompt: '6th triangular number.', answer: 21,
-        solution: '\\frac{1}{2}(6)(7) = 21.' },
-      { kind: 'mcq', prompt: 'For T_n = 5 \\times 2^n (n starts at 1), find T_3.',
-        options: ['40', '30', '25', '20'], correct: 0,
-        solution: '5 \\times 2^3 = 40.' },
-    ],
-  },
-
-  // ───────────────────── L6: Sequences from patterns ───────────────────
-  {
-    id: 'L6',
-    title: 'Lesson 6 · Sequences from patterns',
-    teach: {
-      heading: 'Count the dots / sticks / shapes; build a table',
-      body: [
-        'A common style of question shows a SHAPE PATTERN (matchsticks forming triangles, dots arranged in squares, …) and asks for a formula in terms of the pattern number.',
-        'Strategy: (1) count carefully for the first 3-4 patterns; (2) build a table with pattern number n in one row and the count in the next; (3) decide if the count is LINEAR (constant first difference) or QUADRATIC (constant second difference); (4) find the nth term.',
-        'For a LINEAR pattern of matchsticks T_n = an + b:',
-        '"a" is the number of NEW sticks each next pattern uses.',
-        '"b" is whatever you need to add (often the count for n = 0, the "starting" cost).',
-        'Always plug n = 1 back in to verify.',
-      ],
-      example: 'Squares-from-sticks: pattern 1 uses 4 sticks, pattern 2 uses 7, pattern 3 uses 10. T_n = 3n + 1 (each new square adds 3 sticks; the first one cost 4).',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Matchstick pattern: 4, 7, 10, 13, … nth term?',
-        options: ['3n + 1', '3n + 4', '4n + 3', '3n - 1'], correct: 0,
-        solution: 'd = 3, T_1 = 4 = 3(1) + 1.' },
-      { kind: 'mcq', prompt: 'Pattern: 3, 5, 7, 9, … nth term?',
-        options: ['2n + 1', '2n + 3', 'n + 2', '2n - 1'], correct: 0,
-        solution: 'd = 2, T_1 = 3 = 2(1) + 1.' },
-      { kind: 'mcq', prompt: 'Pattern: 5, 9, 13, 17, … nth term?',
-        options: ['4n + 1', '4n + 5', '5n + 4', 'n + 4'], correct: 0,
-        solution: 'd = 4, T_1 = 5 = 4(1) + 1.' },
-      { kind: 'mcq', prompt: 'Pattern of squares: 1, 4, 9, 16, … nth term?',
-        options: ['n^2', '2n - 1', 'n + 3', 'n^2 + 1'], correct: 0,
-        solution: 'These are perfect squares.' },
-      { kind: 'fill-num', prompt: 'Matchsticks in pattern n where T_n = 2n + 1. How many in pattern 100?', answer: 201,
-        solution: '2(100) + 1 = 201.' },
-      { kind: 'mcq', prompt: 'A pattern needs 3 sticks for each new triangle, plus one starter. T_n =?',
-        options: ['3n + 1', '3n', 'n + 3', '3n - 1'], correct: 0,
-        solution: 'Each new triangle adds 3; one starter cost: 3n + 1.' },
-      { kind: 'mcq', prompt: 'Pattern: 6, 11, 16, 21, … T_50?',
-        options: ['251', '250', '255', '256'], correct: 0,
-        solution: 'T_n = 5n + 1; 5(50) + 1 = 251.' },
-      { kind: 'mcq', prompt: 'Triangular dot pattern: 1, 3, 6, 10, … nth term?',
-        options: ['\\frac{n(n+1)}{2}', 'n + 2', '2n - 1', 'n^2'], correct: 0,
-        solution: 'Triangular numbers.' },
-      { kind: 'mcq', prompt: 'Pattern n uses T_n = 3n + 1 sticks. Which pattern number uses 100 sticks?',
-        options: ['33', '34', '99', 'None'], correct: 0,
-        solution: '3n + 1 = 100 \\to n = 33.' },
-      { kind: 'mcq', prompt: 'Pattern: T_n = 2n + 5. How many sticks in the 6th pattern?',
-        options: ['17', '15', '12', '11'], correct: 0,
-        solution: '2(6) + 5 = 17.' },
-    ],
-  },
-
-  // ───────────────────── L7: Subscript notation ────────────────────────
-  {
-    id: 'L7',
-    title: 'Lesson 7 · Subscript notation & recurrence',
-    teach: {
-      heading: 'u_1, u_2, u_3, … and u_{n+1} = some rule',
-      body: [
-        'A neat way to talk about specific terms of a sequence is SUBSCRIPT NOTATION: u_1 is the first term, u_2 the second, and in general u_n is the nth term.',
-        'A POSITION rule writes u_n as a formula in n directly, e.g. u_n = 3n - 1 \\to u_1 = 2, u_2 = 5, u_3 = 8.',
-        'A RECURRENCE rule writes u_{n+1} in terms of u_n (and possibly earlier terms), e.g. u_{n+1} = u_n + 4 with u_1 = 3 gives 3, 7, 11, 15, ….',
-        'To USE a position rule: just substitute. To USE a recurrence: start with the given first term(s) and apply the rule step by step.',
-      ],
-      example: 'u_n = n^2 + 5. u_1 = 6, u_2 = 9, u_3 = 14.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'u_n = 3n - 1. Find u_1.',
-        options: ['2', '3', '0', '4'], correct: 0,
-        solution: '3(1) - 1 = 2.' },
-      { kind: 'mcq', prompt: 'u_n = 3n - 1. Find u_4.',
-        options: ['11', '12', '10', '13'], correct: 0,
-        solution: '3(4) - 1 = 11.' },
-      { kind: 'mcq', prompt: 'u_n = n^2 + 5. Find u_3.',
-        options: ['14', '11', '15', '8'], correct: 0,
-        solution: '3^2 + 5 = 14.' },
-      { kind: 'mcq', prompt: 'u_n = n^2 + 5. Which term is 149?',
-        options: ['u_12', 'u_13', 'u_11', 'Not a term'], correct: 0,
-        solution: 'n^2 + 5 = 149 \\to n^2 = 144 \\to n = 12.' },
-      { kind: 'mcq', prompt: 'u_{n+1} = u_n + 4 with u_1 = 3. Find u_2.',
-        options: ['7', '4', '8', '12'], correct: 0,
-        solution: '3 + 4 = 7.' },
-      { kind: 'mcq', prompt: 'Same recurrence (u_{n+1} = u_n + 4, u_1 = 3). Find u_5.',
-        options: ['19', '15', '20', '18'], correct: 0,
-        solution: '3, 7, 11, 15, 19.' },
-      { kind: 'mcq', prompt: 'u_{n+1} = 2 u_n with u_1 = 5. Find u_4.',
-        options: ['40', '20', '60', '80'], correct: 0,
-        solution: '5, 10, 20, 40.' },
-      { kind: 'fill-num', prompt: 'u_n = 5n + 1. Find u_10.', answer: 51,
-        solution: '5(10) + 1 = 51.' },
-      { kind: 'mcq', prompt: 'u_{n+1} = u_n + u_{n-1} with u_1 = 1, u_2 = 1. Find u_5.',
-        options: ['5', '4', '8', '3'], correct: 0,
-        solution: 'Fibonacci: 1, 1, 2, 3, 5.' },
-      { kind: 'fill-num', prompt: 'u_n = 4n - 5. Which term is 23?', answer: 7,
-        solution: '4n - 5 = 23 \\to n = 7.' },
-    ],
-  },
-
-  // ───────────────────── L8: Rational and irrational numbers ───────────
-  {
-    id: 'L8',
-    title: 'Lesson 8 · Rational & irrational numbers',
-    teach: {
-      heading: 'Can it be written as one whole over another?',
-      body: [
-        'A RATIONAL number is one that can be written in the form \\frac{a}{b}, where a and b are integers (and b ≠ 0). Examples: 0.5 = \\frac{1}{2}, 0.125 = \\frac{1}{8}, 7 = \\frac{7}{1}, -3 = \\frac{-3}{1}.',
-        'An IRRATIONAL number is one that CANNOT be written as a fraction of two integers. Examples: \\pi, \\sqrt{2}, \\sqrt{3}, \\sqrt{5}, …',
-        'Quick checks:',
-        'Any TERMINATING decimal is rational (e.g. 0.625 = \\frac{5}{8}).',
-        'Any RECURRING decimal is rational (e.g. 0.333… = \\frac{1}{3}).',
-        'Any decimal that goes on forever WITHOUT repeating is irrational.',
-        'The square root of a non-perfect-square positive integer is always irrational.',
-      ],
-      example: '\\sqrt{4} = 2 (rational); \\sqrt{2} = 1.41421… (irrational); 0.142857142857… (recurring) is rational.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Is \\frac{1}{4} rational or irrational?',
-        options: ['Rational', 'Irrational', 'Neither', 'Both'], correct: 0,
-        solution: 'Already a fraction of integers.' },
-      { kind: 'mcq', prompt: 'Is 4 rational or irrational?',
-        options: ['Rational', 'Irrational', 'Neither', 'Cannot tell'], correct: 0,
-        solution: '4 = \\frac{4}{1}.' },
-      { kind: 'mcq', prompt: 'Is \\sqrt{7} rational or irrational?',
-        options: ['Irrational', 'Rational', 'Both', 'Neither'], correct: 0,
-        solution: '7 is not a perfect square.' },
-      { kind: 'mcq', prompt: 'Is \\sqrt{25} rational or irrational?',
-        options: ['Rational', 'Irrational', 'Cannot decide', 'Both'], correct: 0,
-        solution: '\\sqrt{25} = 5 = \\frac{5}{1}.' },
-      { kind: 'mcq', prompt: 'Is 0.45 (terminating) rational or irrational?',
-        options: ['Rational', 'Irrational', 'Cannot tell', 'Neither'], correct: 0,
-        solution: '0.45 = \\frac{45}{100} = \\frac{9}{20}.' },
-      { kind: 'mcq', prompt: 'Is 0.333333… (recurring) rational or irrational?',
-        options: ['Rational', 'Irrational', 'Both', 'Neither'], correct: 0,
-        solution: 'All recurring decimals are rational. 0.\\dot{3} = \\frac{1}{3}.' },
-      { kind: 'mcq', prompt: 'Is \\pi rational or irrational?',
-        options: ['Irrational', 'Rational', 'Both', 'Sometimes'], correct: 0,
-        solution: '\\pi = 3.14159265358979… (no repeating pattern).' },
-      { kind: 'mcq', prompt: 'Is 2\\pi rational or irrational?',
-        options: ['Irrational', 'Rational', 'Cannot tell', 'Both'], correct: 0,
-        solution: 'A non-zero rational times an irrational is irrational.' },
-      { kind: 'mcq', prompt: 'Is 0 rational or irrational?',
-        options: ['Rational', 'Irrational', 'Neither', 'Both'], correct: 0,
-        solution: '0 = \\frac{0}{1}.' },
-      { kind: 'mcq', prompt: 'Is \\sqrt{16} \\times \\sqrt{9} rational?',
-        options: ['Yes — equals 12', 'No', 'Cannot tell', 'Only if rounded'], correct: 0,
-        solution: '4 \\times 3 = 12.' },
-    ],
-  },
-
-  // ───────────────────── L9: Recurring decimals → fractions ────────────
-  {
-    id: 'L9',
-    title: 'Lesson 9 · Recurring decimals \\to fractions',
-    teach: {
-      heading: 'The 10x trick',
-      body: [
-        'Every RECURRING decimal can be written exactly as a fraction. The trick uses simple algebra.',
-        'Step 1: Let x equal the recurring decimal.',
-        'Step 2: Multiply x by 10, 100, or 1000 (whatever shifts a complete cycle of recurring digits past the decimal point).',
-        'Step 3: Subtract the original x. The recurring tails cancel.',
-        'Step 4: Solve for x as a fraction.',
-        'For one recurring digit, multiply by 10. For two recurring digits, multiply by 100. For three, multiply by 1000.',
-      ],
-      example: 'x = 0.3333…; 10x = 3.3333…; subtract: 9x = 3 → x = \\frac{3}{9} = \\frac{1}{3}.',
-    },
-    questions: [
-      { kind: 'fill-frac', prompt: 'Convert 0.4444… (the 4 recurs) to a simplified fraction.', answer: '4/9',
-        solution: '10x - x = 4 \\to 9x = 4 \\to x = \\frac{4}{9}.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.5555… (the 5 recurs) to a simplified fraction.', answer: '5/9',
-        solution: 'Same trick: 9x = 5.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.1111… (the 1 recurs) to a simplified fraction.', answer: '1/9',
-        solution: '9x = 1.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.6666… (the 6 recurs) to a simplified fraction.', answer: '2/3',
-        solution: '9x = 6 \\to x = \\frac{6}{9} = \\frac{2}{3}.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.2424… (the 24 recurs) to a simplified fraction.', answer: '8/33',
-        solution: '100x - x = 24 \\to 99x = 24 \\to x = \\frac{24}{99} = \\frac{8}{33}.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.3636… (the 36 recurs) to a simplified fraction.', answer: '4/11',
-        solution: '99x = 36 \\to x = \\frac{36}{99} = \\frac{4}{11}.' },
-      { kind: 'fill-frac', prompt: 'Convert 0.9999… (the 9 recurs) to a simplified fraction.', answer: '1/1',
-        solution: '9x = 9 \\to x = 1. (Yes, 0.9 recurring equals exactly 1.)' },
-      { kind: 'mcq', prompt: 'Which fraction is 0.272727… (27 recurs) equal to?',
-        options: ['\\frac{3}{11}', '\\frac{27}{100}', '\\frac{1}{4}', '\\frac{27}{99}'], correct: 0,
-        solution: '99x = 27 \\to x = \\frac{27}{99} = \\frac{3}{11}.' },
-      { kind: 'mcq', prompt: 'Convert 0.142857142857… (142857 recurs) to a fraction.',
-        options: ['\\frac{1}{7}', '\\frac{1}{6}', '\\frac{1}{8}', '\\frac{142857}{1000000}'], correct: 0,
-        solution: 'Famous recurring decimal of \\frac{1}{7}.' },
-      { kind: 'mcq', prompt: 'Convert 0.6 (with the 6 recurring) to a fraction.',
-        options: ['\\frac{2}{3}', '\\frac{6}{9}', 'Both A and B', '\\frac{3}{5}'], correct: 2,
-        solution: '\\frac{6}{9} = \\frac{2}{3}, both correct.' },
-    ],
-  },
-
-  // ───────────────────── L10: Simplifying surds ────────────────────────
-  {
-    id: 'L10',
-    title: 'Lesson 10 · Simplifying surds',
-    teach: {
-      heading: 'Pull out perfect squares',
-      body: [
-        'A SURD is a square root that does not simplify to a rational number — like \\sqrt{2}, \\sqrt{3}, \\sqrt{50}.',
-        'Key rule: \\sqrt{a \\times b} = \\sqrt{a} \\times \\sqrt{b}. Use it to factor a perfect square out of the number under the root.',
-        'To simplify \\sqrt{N}: find the largest perfect square that divides N, write N = (perfect square) × (rest), then \\sqrt{N} = \\sqrt{perfect sq} \\times \\sqrt{rest} = (root of perfect sq) \\times \\sqrt{rest}.',
-        'Useful perfect squares: 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, ….',
-        'Choose the LARGEST perfect square factor — that gives the most simplified form in one step.',
-      ],
-      example: '\\sqrt{50} = \\sqrt{25 \\times 2} = 5 \\sqrt{2}. \\sqrt{72} = \\sqrt{36 \\times 2} = 6 \\sqrt{2}.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{50}.',
-        options: ['5\\sqrt{2}', '2\\sqrt{5}', '\\sqrt{50}', '10\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{25 \\times 2} = 5\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{18}.',
-        options: ['3\\sqrt{2}', '2\\sqrt{3}', '\\sqrt{18}', '6\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{9 \\times 2} = 3\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{72}.',
-        options: ['6\\sqrt{2}', '8\\sqrt{2}', '12\\sqrt{6}', '9\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{36 \\times 2} = 6\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{80}.',
-        options: ['4\\sqrt{5}', '5\\sqrt{4}', '8\\sqrt{10}', '2\\sqrt{20}'], correct: 0,
-        solution: '\\sqrt{16 \\times 5} = 4\\sqrt{5}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{12}.',
-        options: ['2\\sqrt{3}', '3\\sqrt{2}', '\\sqrt{12}', '4\\sqrt{3}'], correct: 0,
-        solution: '\\sqrt{4 \\times 3} = 2\\sqrt{3}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{45}.',
-        options: ['3\\sqrt{5}', '5\\sqrt{3}', '\\sqrt{45}', '9\\sqrt{5}'], correct: 0,
-        solution: '\\sqrt{9 \\times 5} = 3\\sqrt{5}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{75}.',
-        options: ['5\\sqrt{3}', '3\\sqrt{5}', '15\\sqrt{5}', '25\\sqrt{3}'], correct: 0,
-        solution: '\\sqrt{25 \\times 3} = 5\\sqrt{3}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{200}.',
-        options: ['10\\sqrt{2}', '20\\sqrt{10}', '5\\sqrt{8}', '14\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{100 \\times 2} = 10\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Simplify 2\\sqrt{18}.',
-        options: ['6\\sqrt{2}', '4\\sqrt{9}', '2\\sqrt{18}', '36\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{18} = 3\\sqrt{2}, so 2 \\times 3\\sqrt{2} = 6\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Simplify \\sqrt{48}.',
-        options: ['4\\sqrt{3}', '3\\sqrt{4}', '8\\sqrt{6}', '12\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{16 \\times 3} = 4\\sqrt{3}.' },
-    ],
-  },
-
-  // ───────────────────── L11: Adding and subtracting surds ─────────────
-  {
-    id: 'L11',
-    title: 'Lesson 11 · Adding & subtracting surds',
-    teach: {
-      heading: 'Same surd \\to combine coefficients (like algebra)',
-      body: [
-        'You can ADD or SUBTRACT surds only if they are the SAME surd. Treat the surd like an algebraic letter and combine coefficients.',
-        '2\\sqrt{3} + 5\\sqrt{3} = 7\\sqrt{3}, just as 2x + 5x = 7x.',
-        'But 2\\sqrt{3} + 5\\sqrt{2} CANNOT be combined (different surds).',
-        'TIP: SIMPLIFY each surd FIRST, because two surds that look different may simplify to the same surd. For example, \\sqrt{8} + \\sqrt{2} = 2\\sqrt{2} + \\sqrt{2} = 3\\sqrt{2}.',
-      ],
-      example: '\\sqrt{12} + \\sqrt{27} = 2\\sqrt{3} + 3\\sqrt{3} = 5\\sqrt{3}.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: '3\\sqrt{2} + 5\\sqrt{2} = ?',
-        options: ['8\\sqrt{2}', '8\\sqrt{4}', '15\\sqrt{2}', '8'], correct: 0,
-        solution: 'Same surd, add coefficients.' },
-      { kind: 'mcq', prompt: '7\\sqrt{5} - 2\\sqrt{5} = ?',
-        options: ['5\\sqrt{5}', '5\\sqrt{0}', '\\sqrt{5}', '5'], correct: 0,
-        solution: 'Subtract coefficients: 7 - 2 = 5.' },
-      { kind: 'mcq', prompt: '\\sqrt{8} + \\sqrt{2} = ? (simplify first!)',
-        options: ['3\\sqrt{2}', '\\sqrt{10}', '2\\sqrt{2}', 'Cannot combine'], correct: 0,
-        solution: '\\sqrt{8} = 2\\sqrt{2}, then 2\\sqrt{2} + \\sqrt{2} = 3\\sqrt{2}.' },
-      { kind: 'mcq', prompt: '\\sqrt{12} + \\sqrt{27} = ?',
-        options: ['5\\sqrt{3}', '\\sqrt{39}', '6\\sqrt{3}', 'Cannot combine'], correct: 0,
-        solution: '2\\sqrt{3} + 3\\sqrt{3} = 5\\sqrt{3}.' },
-      { kind: 'mcq', prompt: '\\sqrt{50} - \\sqrt{18} = ?',
-        options: ['2\\sqrt{2}', '8\\sqrt{2}', '\\sqrt{32}', 'Cannot combine'], correct: 0,
-        solution: '5\\sqrt{2} - 3\\sqrt{2} = 2\\sqrt{2}.' },
-      { kind: 'mcq', prompt: '3\\sqrt{2} + 4\\sqrt{3} = ?',
-        options: ['Cannot be combined', '7\\sqrt{5}', '7\\sqrt{6}', '3\\sqrt{2} + 4\\sqrt{3}'], correct: 3,
-        solution: 'Different surds — leave as is. (Option D is the unsimplified expression.)' },
-      { kind: 'mcq', prompt: '\\sqrt{75} - \\sqrt{12} = ?',
-        options: ['3\\sqrt{3}', '\\sqrt{63}', '5\\sqrt{3} - 4\\sqrt{3}', 'Cannot combine'], correct: 0,
-        solution: '5\\sqrt{3} - 2\\sqrt{3} = 3\\sqrt{3}.' },
-      { kind: 'mcq', prompt: '4\\sqrt{2} - \\sqrt{32} = ?',
-        options: ['0', '4\\sqrt{2}', '-\\sqrt{32}', '8\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{32} = 4\\sqrt{2}, so 4\\sqrt{2} - 4\\sqrt{2} = 0.' },
-      { kind: 'mcq', prompt: '5\\sqrt{2} - 2\\sqrt{8} = ?',
-        options: ['\\sqrt{2}', '3\\sqrt{2}', '0', '5\\sqrt{2}'], correct: 0,
-        solution: '\\sqrt{8} = 2\\sqrt{2}, so 5\\sqrt{2} - 4\\sqrt{2} = \\sqrt{2}.' },
-      { kind: 'mcq', prompt: '\\sqrt{45} + \\sqrt{20} = ?',
-        options: ['5\\sqrt{5}', '\\sqrt{65}', '3\\sqrt{5} + 2\\sqrt{5}', 'Both A and C'], correct: 3,
-        solution: '3\\sqrt{5} + 2\\sqrt{5} = 5\\sqrt{5}. A and C are equal.' },
-    ],
-  },
-
-  // ───────────────────── L12: Multiplying & dividing surds ─────────────
-  {
-    id: 'L12',
-    title: 'Lesson 12 · Multiplying & dividing surds',
-    teach: {
-      heading: '\\sqrt{a} \\times \\sqrt{b} = \\sqrt{a b}; \\frac{\\sqrt{a}}{\\sqrt{b}} = \\sqrt{\\frac{a}{b}}',
-      body: [
-        'For multiplication and division, surds combine UNDER one square root.',
-        '\\sqrt{a} \\times \\sqrt{b} = \\sqrt{a b}. So \\sqrt{2} \\times \\sqrt{8} = \\sqrt{16} = 4.',
-        '\\frac{\\sqrt{a}}{\\sqrt{b}} = \\sqrt{\\frac{a}{b}}. So \\frac{\\sqrt{12}}{\\sqrt{3}} = \\sqrt{4} = 2.',
-        'When numbers in front are present (like 2\\sqrt{3} \\times 4\\sqrt{5}), multiply the integers separately and the surds separately: 2 \\times 4 \\times \\sqrt{3} \\times \\sqrt{5} = 8\\sqrt{15}.',
-        'Then SIMPLIFY the result if possible.',
-      ],
-      example: '2\\sqrt{6} \\times 3\\sqrt{2} = 6\\sqrt{12} = 6 \\times 2\\sqrt{3} = 12\\sqrt{3}.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: '\\sqrt{3} \\times \\sqrt{7} = ?',
-        options: ['\\sqrt{21}', '\\sqrt{10}', '21', '\\sqrt{3 \\times 7}'], correct: 0,
-        solution: '\\sqrt{3 \\times 7} = \\sqrt{21}.' },
-      { kind: 'mcq', prompt: '\\sqrt{2} \\times \\sqrt{8} = ?',
-        options: ['4', '\\sqrt{16}', 'Both A and B', '\\sqrt{10}'], correct: 2,
-        solution: '\\sqrt{16} = 4. Both A and B are correct.' },
-      { kind: 'mcq', prompt: '2\\sqrt{3} \\times 4\\sqrt{5} = ?',
-        options: ['8\\sqrt{15}', '6\\sqrt{8}', '8\\sqrt{8}', '2\\sqrt{15}'], correct: 0,
-        solution: '2 \\times 4 \\times \\sqrt{3 \\times 5} = 8\\sqrt{15}.' },
-      { kind: 'mcq', prompt: '3\\sqrt{2} \\times \\sqrt{8} = ?',
-        options: ['12', '6\\sqrt{2}', '\\sqrt{18}', '24'], correct: 0,
-        solution: '3 \\times \\sqrt{16} = 3 \\times 4 = 12.' },
-      { kind: 'mcq', prompt: '\\frac{\\sqrt{12}}{\\sqrt{3}} = ?',
-        options: ['2', '\\sqrt{4}', 'Both A and B', '\\sqrt{9}'], correct: 2,
-        solution: '\\sqrt{12 / 3} = \\sqrt{4} = 2.' },
-      { kind: 'mcq', prompt: '\\frac{\\sqrt{50}}{\\sqrt{2}} = ?',
-        options: ['5', '\\sqrt{25}', 'Both A and B', '\\sqrt{52}'], correct: 2,
-        solution: '\\sqrt{25} = 5.' },
-      { kind: 'mcq', prompt: '\\sqrt{6} \\times \\sqrt{6} = ?',
-        options: ['6', '\\sqrt{12}', '36', '\\sqrt{6}'], correct: 0,
-        solution: '(\\sqrt{6})^2 = 6.' },
-      { kind: 'mcq', prompt: '5\\sqrt{2} \\times 3\\sqrt{8} = ?',
-        options: ['60', '30\\sqrt{2}', '15\\sqrt{16}', 'Both A and C'], correct: 3,
-        solution: '15 \\times \\sqrt{16} = 15 \\times 4 = 60.' },
-      { kind: 'mcq', prompt: '\\sqrt{2}(\\sqrt{6} + \\sqrt{3}) = ?',
-        options: ['2\\sqrt{3} + \\sqrt{6}', '\\sqrt{12} + \\sqrt{6}', 'Both A and B', '\\sqrt{18}'], correct: 2,
-        solution: '\\sqrt{12} = 2\\sqrt{3}; A and B both right.' },
-      { kind: 'fill-num', prompt: '\\sqrt{8} \\times \\sqrt{2} = ? (numerical answer)', answer: 4,
-        solution: '\\sqrt{16} = 4.' },
-    ],
-  },
-
-  // ───────────────────── L13: Rationalising the denominator ────────────
-  {
-    id: 'L13',
-    title: 'Lesson 13 · Rationalising the denominator',
-    teach: {
-      heading: 'Get rid of surds in the bottom of a fraction',
-      body: [
-        'Conventional form for an exact answer: NO surds in the denominator. To clear them, MULTIPLY top and bottom by a useful factor.',
-        'Single surd in denominator: multiply by \\frac{\\sqrt{b}}{\\sqrt{b}}. Example: \\frac{1}{\\sqrt{3}} = \\frac{\\sqrt{3}}{3}.',
-        'A SURD plus or minus a number (or another surd) in the denominator: multiply by the CONJUGATE — same expression but with the opposite middle sign. Example: \\frac{1}{2 + \\sqrt{3}} \\times \\frac{2 - \\sqrt{3}}{2 - \\sqrt{3}}.',
-        'The conjugate trick works because (a + b)(a - b) = a^2 - b^2, which collapses the surd in the denominator to a regular integer.',
-        'Always SIMPLIFY the result.',
-      ],
-      example: '\\frac{1}{\\sqrt{2}} \\times \\frac{\\sqrt{2}}{\\sqrt{2}} = \\frac{\\sqrt{2}}{2}.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'Rationalise \\frac{1}{\\sqrt{2}}.',
-        options: ['\\frac{\\sqrt{2}}{2}', '\\frac{1}{2}', '\\frac{2}{\\sqrt{2}}', '\\sqrt{2}'], correct: 0,
-        solution: 'Multiply top and bottom by \\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{3}{\\sqrt{5}}.',
-        options: ['\\frac{3\\sqrt{5}}{5}', '\\frac{3}{5}', '\\frac{\\sqrt{15}}{5}', '\\frac{5\\sqrt{3}}{3}'], correct: 0,
-        solution: 'Multiply by \\frac{\\sqrt{5}}{\\sqrt{5}}: \\frac{3\\sqrt{5}}{5}.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{6}{\\sqrt{3}}.',
-        options: ['2\\sqrt{3}', '\\sqrt{18}', '6\\sqrt{3}', '\\frac{2}{\\sqrt{3}}'], correct: 0,
-        solution: '\\frac{6\\sqrt{3}}{3} = 2\\sqrt{3}.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{1}{\\sqrt{8}}.',
-        options: ['\\frac{\\sqrt{2}}{4}', '\\frac{1}{2\\sqrt{2}}', '\\frac{\\sqrt{8}}{8}', 'A and C are equal'], correct: 3,
-        solution: '\\sqrt{8} = 2\\sqrt{2}; \\frac{\\sqrt{8}}{8} = \\frac{2\\sqrt{2}}{8} = \\frac{\\sqrt{2}}{4}.' },
-      { kind: 'mcq', prompt: 'Conjugate of (3 + \\sqrt{2})?',
-        options: ['3 - \\sqrt{2}', '\\sqrt{2} - 3', '-3 + \\sqrt{2}', '3 + \\sqrt{2}'], correct: 0,
-        solution: 'Same expression, flipped sign in the middle.' },
-      { kind: 'mcq', prompt: '(2 + \\sqrt{3})(2 - \\sqrt{3}) = ?',
-        options: ['1', '4 - 3 = 1', 'Both A and B', '4 + 3 = 7'], correct: 2,
-        solution: '(2)^2 - (\\sqrt{3})^2 = 4 - 3 = 1.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{1}{2 + \\sqrt{3}}.',
-        options: ['2 - \\sqrt{3}', '2 + \\sqrt{3}', '\\frac{2 - \\sqrt{3}}{1}', 'Both A and C'], correct: 3,
-        solution: 'Multiply by \\frac{2 - \\sqrt{3}}{2 - \\sqrt{3}}; denominator becomes 1.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{4}{3 - \\sqrt{5}}.',
-        options: ['3 + \\sqrt{5}', '\\frac{4(3 + \\sqrt{5})}{4}', 'Both A and B', '4(3 + \\sqrt{5})'], correct: 2,
-        solution: 'Mult by \\frac{3 + \\sqrt{5}}{3 + \\sqrt{5}}; denom = 9 - 5 = 4; \\frac{4(3+\\sqrt{5})}{4} = 3 + \\sqrt{5}.' },
-      { kind: 'mcq', prompt: 'Rationalise \\frac{10}{\\sqrt{2}}.',
-        options: ['5\\sqrt{2}', '\\frac{10\\sqrt{2}}{2}', 'Both A and B', '\\sqrt{50}'], correct: 2,
-        solution: '\\frac{10\\sqrt{2}}{2} = 5\\sqrt{2}.' },
-      { kind: 'mcq', prompt: 'Why does multiplying by the CONJUGATE clear a surd in the denominator?',
-        options: ['(a + b)(a - b) = a^2 - b^2 — the surd vanishes', 'Conjugates add to zero', 'They cancel like fractions', 'It is just the rule, no reason'], correct: 0,
-        solution: 'The cross-terms cancel.' },
-    ],
-  },
-
-  // ───────────────────── L14: Set notation basics ──────────────────────
-  {
-    id: 'L14',
-    title: 'Lesson 14 · Set notation basics',
-    teach: {
-      heading: 'Curly braces, \\u2208, n(A), \\u2205, complement',
-      body: [
-        'A SET is an unordered collection of distinct objects called ELEMENTS. We list elements inside curly braces: A = \\{1, 3, 5, 7\\}.',
-        'KEY symbols:',
-        '\\u2208 means "is an element of": 3 \\u2208 A.',
-        '\\u2209 means "is NOT an element of": 4 \\u2209 A.',
-        'n(A) means "number of elements in A": n(\\{1, 3, 5, 7\\}) = 4.',
-        '\\u2205 (or { }) is the EMPTY set: a set with no elements. n(\\u2205) = 0.',
-        'The UNIVERSAL set ε contains every element under consideration.',
-        'The COMPLEMENT A\\u2032 (or A^c) contains every element of ε that is NOT in A.',
-      ],
-      example: 'ε = \\{1, 2, 3, 4, 5, 6\\}, A = \\{1, 3, 5\\}. Then A\\u2032 = \\{2, 4, 6\\}, n(A) = 3.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'A = \\{2, 4, 6, 8, 10\\}. n(A) = ?',
-        options: ['5', '4', '6', '10'], correct: 0,
-        solution: 'Five elements.' },
-      { kind: 'mcq', prompt: 'A = \\{2, 4, 6, 8, 10\\}. Is 7 \\u2208 A?',
-        options: ['No (7 \\u2209 A)', 'Yes', 'Cannot tell', 'Sometimes'], correct: 0,
-        solution: '7 is not in the list.' },
-      { kind: 'mcq', prompt: 'B = \\{a, e, i, o, u\\} (vowels). n(B) = ?',
-        options: ['5', '6', '4', '26'], correct: 0,
-        solution: 'Five English vowels.' },
-      { kind: 'mcq', prompt: 'C = \\{turtles\\} (set of turtles in the classroom — none). C is …',
-        options: ['Empty: \\u2205', '\\{0\\}', '0', 'Not a set'], correct: 0,
-        solution: 'No elements \\to empty set.' },
-      { kind: 'mcq', prompt: 'n(\\u2205) = ?',
-        options: ['0', '1', 'Undefined', '\\u2205'], correct: 0,
-        solution: 'Empty set has zero elements.' },
-      { kind: 'mcq', prompt: 'ε = \\{1, 2, 3, 4, 5, 6, 7, 8\\}. A = \\{1, 3, 5, 7\\}. A\\u2032 = ?',
-        options: ['\\{2, 4, 6, 8\\}', '\\{1, 3, 5, 7\\}', 'ε', '\\u2205'], correct: 0,
-        solution: 'Everything in ε that is not in A.' },
-      { kind: 'mcq', prompt: 'For ε = \\{1..10\\}, B = \\{2, 4, 6, 8, 10\\}. n(B\\u2032) = ?',
-        options: ['5', '4', '10', '0'], correct: 0,
-        solution: 'B\\u2032 = \\{1, 3, 5, 7, 9\\}, five elements.' },
-      { kind: 'mcq', prompt: 'A = \\{HAPPY letters\\} = ?',
-        options: ['\\{H, A, P, Y\\}', '\\{H, A, P, P, Y\\}', '\\{HAPPY\\}', '\\{5\\}'], correct: 0,
-        solution: 'Sets contain DISTINCT elements (no duplicates).' },
-      { kind: 'mcq', prompt: 'n(\\{H, A, P, Y\\}) = ?',
-        options: ['4', '5', '1', '0'], correct: 0,
-        solution: 'Four distinct letters.' },
-      { kind: 'mcq', prompt: 'If ε = \\{integers from 1 to 20\\} and A = \\{primes in ε\\}, n(A) = ?',
-        options: ['8', '7', '9', '10'], correct: 0,
-        solution: 'Primes 1–20: 2, 3, 5, 7, 11, 13, 17, 19 — eight primes.' },
-    ],
-  },
-
-  // ───────────────────── L15: Union, intersection, subset ──────────────
-  {
-    id: 'L15',
-    title: 'Lesson 15 · Union, intersection & subset',
-    teach: {
-      heading: '\\u222a, \\u2229, \\u2286 / \\u2282',
-      body: [
-        'For two sets A and B:',
-        'UNION A \\u222a B is the set of elements in A OR in B (or both). Combine all elements; do not repeat.',
-        'INTERSECTION A \\u2229 B is the set of elements in A AND in B (must be in both).',
-        'SUBSET A \\u2286 B means EVERY element of A is also in B. (\\u2282 means proper subset — A is a subset and A ≠ B.)',
-        'Example: A = \\{1, 2, 3\\}, B = \\{2, 3, 4, 5\\}. A \\u222a B = \\{1, 2, 3, 4, 5\\}; A \\u2229 B = \\{2, 3\\}.',
-        'Counting trick: n(A \\u222a B) = n(A) + n(B) - n(A \\u2229 B). (Avoid double-counting the overlap.)',
-      ],
-      example: 'A = \\{4, 8, 12, 16, 20, 24\\}, B = \\{5, 10, 15, 20, 25\\}. A \\u222a B = all eleven numbers (20 once); A \\u2229 B = \\{20\\}; n(A \\u222a B) = 6 + 5 - 1 = 10.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'A = \\{1, 2, 3\\}, B = \\{3, 4, 5\\}. A \\u222a B = ?',
-        options: ['\\{1, 2, 3, 4, 5\\}', '\\{3\\}', '\\{1, 2, 3, 3, 4, 5\\}', '\\{1, 2, 4, 5\\}'], correct: 0,
-        solution: 'All distinct elements of A or B.' },
-      { kind: 'mcq', prompt: 'A = \\{1, 2, 3\\}, B = \\{3, 4, 5\\}. A \\u2229 B = ?',
-        options: ['\\{3\\}', '\\{1, 2, 3, 4, 5\\}', '\\u2205', '\\{1, 2, 4, 5\\}'], correct: 0,
-        solution: 'Common elements only.' },
-      { kind: 'mcq', prompt: 'A = \\{2, 4, 6\\}, B = \\{3, 5, 7\\}. A \\u2229 B = ?',
-        options: ['\\u2205', '\\{2, 4, 6, 3, 5, 7\\}', '\\{2, 3, 4, 5, 6, 7\\}', 'Cannot determine'], correct: 0,
-        solution: 'No common elements.' },
-      { kind: 'mcq', prompt: 'n(A) = 4, n(B) = 6, n(A \\u2229 B) = 2. n(A \\u222a B) = ?',
-        options: ['8', '10', '12', '6'], correct: 0,
-        solution: '4 + 6 - 2 = 8.' },
-      { kind: 'mcq', prompt: 'Is \\{1, 2\\} \\u2286 \\{1, 2, 3\\}?',
-        options: ['Yes', 'No', 'Only sometimes', 'Cannot tell'], correct: 0,
-        solution: 'Every element of \\{1, 2\\} is in \\{1, 2, 3\\}.' },
-      { kind: 'mcq', prompt: 'Is \\{1, 2, 3\\} \\u2282 \\{1, 2, 3\\}?',
-        options: ['No (proper subset must be unequal)', 'Yes', 'Cannot tell', 'Only if disjoint'], correct: 0,
-        solution: '\\u2282 means PROPER subset — A ≠ B.' },
-      { kind: 'mcq', prompt: 'A = \\{rectangles\\}, B = \\{quadrilaterals\\}. Is A \\u2286 B?',
-        options: ['Yes', 'No', 'Only sometimes', 'Cannot tell'], correct: 0,
-        solution: 'Every rectangle is a quadrilateral.' },
-      { kind: 'mcq', prompt: 'A = \\{2, 4, 6, 8\\}, B = \\{1, 2, 3, 4\\}. n(A \\u2229 B) = ?',
-        options: ['2', '4', '8', '6'], correct: 0,
-        solution: 'Common: \\{2, 4\\}.' },
-      { kind: 'mcq', prompt: 'A = \\{2, 4, 6, 8\\}, B = \\{1, 2, 3, 4\\}. n(A \\u222a B) = ?',
-        options: ['6', '8', '4', '2'], correct: 0,
-        solution: '\\{1, 2, 3, 4, 6, 8\\}.' },
-      { kind: 'mcq', prompt: 'For ε = \\{1..10\\}, A = \\{1, 2, 3\\}. (A\\u2032)\\u2032 = ?',
-        options: ['A', 'A\\u2032', 'ε', '\\u2205'], correct: 0,
-        solution: 'Complement of complement returns the original set.' },
-    ],
-  },
-
-  // ───────────────────── L16: Venn diagrams & set builder ──────────────
-  {
-    id: 'L16',
-    title: 'Lesson 16 · Venn diagrams & set builder',
-    teach: {
-      heading: 'Pictures of sets, and the colon notation',
-      body: [
-        'A VENN DIAGRAM uses overlapping circles inside a rectangle to show sets and how they relate. The rectangle represents the universal set ε; each circle is a set; the OVERLAP of two circles is their intersection.',
-        'Three regions for two sets A and B: only-A (in A but not B), A \\u2229 B (in both), only-B (in B but not A). Outside both circles: in ε but not in A or B (i.e. (A \\u222a B)\\u2032).',
-        'SET BUILDER notation describes a set by saying what its members must satisfy: A = \\{x : x is a natural number, x < 10\\} reads "A is the set of all x such that x is a natural number and x is less than 10".',
-        'The colon ":" reads "such that". You can use a vertical bar | instead.',
-      ],
-      example: 'B = \\{x : x is a letter of the alphabet, x is a vowel\\} = \\{a, e, i, o, u\\}.',
-    },
-    questions: [
-      { kind: 'mcq', prompt: 'In a Venn diagram of two overlapping circles A and B, the overlap region represents …',
-        options: ['A \\u2229 B', 'A \\u222a B', 'A\\u2032', 'A only'], correct: 0,
-        solution: 'Overlap = elements in both = intersection.' },
-      { kind: 'mcq', prompt: 'The OUTSIDE of both circles (still in ε) represents …',
-        options: ['(A \\u222a B)\\u2032', 'A \\u2229 B', 'A \\u222a B', '\\u2205'], correct: 0,
-        solution: 'Not in A and not in B = complement of the union.' },
-      { kind: 'mcq', prompt: 'Read \\{x : x is an integer, 0 < x < 5\\}.',
-        options: ['\\{1, 2, 3, 4\\}', '\\{0, 1, 2, 3, 4, 5\\}', '\\{0, 1, 2, 3, 4\\}', '\\{1, 2, 3, 4, 5\\}'], correct: 0,
-        solution: 'Strict inequalities exclude 0 and 5.' },
-      { kind: 'mcq', prompt: 'Read \\{x : x is a prime, 10 < x < 20\\}.',
-        options: ['\\{11, 13, 17, 19\\}', '\\{11, 13, 15, 17, 19\\}', '\\{13, 17, 19\\}', '\\{11, 13, 19\\}'], correct: 0,
-        solution: 'Primes strictly between 10 and 20.' },
-      { kind: 'mcq', prompt: 'Read \\{x : x is a vowel in HAPPY\\}.',
-        options: ['\\{A\\}', '\\{H, A, P, Y\\}', '\\u2205', '\\{A, P\\}'], correct: 0,
-        solution: 'Only A is a vowel in HAPPY.' },
-      { kind: 'mcq', prompt: 'Express \\{2, 4, 6, 8, 10\\} in set builder notation.',
-        options: ['\\{x : x is an even integer, 2 \\le x \\le 10\\}', '\\{x : x is even\\}', '\\{x : x is between 2 and 10\\}', '\\{2, 4, 6, 8, 10\\}'], correct: 0,
-        solution: 'Need both the property (even) and the range.' },
-      { kind: 'mcq', prompt: 'Universal ε = \\{1..10\\}. A = even, B = multiples of 3. A \\u2229 B = ?',
-        options: ['\\{6\\}', '\\{2, 4, 6, 8, 10\\}', '\\{3, 6, 9\\}', '\\{6, 12\\}'], correct: 0,
-        solution: 'Only 6 is both even and a multiple of 3 in 1–10.' },
-      { kind: 'mcq', prompt: 'In a survey of 30 students: 22 like classical, 12 like jazz, 5 like neither. How many like BOTH?',
-        options: ['9', '5', '7', '11'], correct: 0,
-        solution: 'Like at least one = 30 - 5 = 25; n(C \\u222a J) = 22 + 12 - n(C \\u2229 J) = 25, so n(C \\u2229 J) = 9.' },
-      { kind: 'mcq', prompt: 'In the same survey, how many like ONLY classical?',
-        options: ['13', '22', '9', '11'], correct: 0,
-        solution: 'Only classical = n(C) - n(C \\u2229 J) = 22 - 9 = 13.' },
-      { kind: 'mcq', prompt: 'A region of a 3-set Venn diagram for "in A and B but not in C" looks like …',
-        options: ['Lens between A and B, outside C', 'Triple-overlap area', 'A only', 'Outside everything'], correct: 0,
-        solution: 'A \\u2229 B \\u2229 C\\u2032 sits inside both A and B circles but outside C.' },
-    ],
-  },
-]
-
-const CH9_PROGRESS_KEY = 'tenali-chapter9-progress'
-function ch9_loadProgress() {
-  try { return JSON.parse(localStorage.getItem(CH9_PROGRESS_KEY) || '{}') || {} } catch { return {} }
-}
-function ch9_saveProgress(p) { try { localStorage.setItem(CH9_PROGRESS_KEY, JSON.stringify(p)) } catch {} }
-
-// --- Custom math renderer for Chapter 9 ----------------------------------
-function Ch9Frac({ num, den }) {
-  return (
-    <span style={{
-      display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-      verticalAlign: 'middle', margin: '0 0.18em', lineHeight: 1.05,
-      fontSize: '0.95em',
-    }}>
-      <span style={{ padding: '0 0.4em 0.05em', borderBottom: '1.6px solid currentColor' }}>{num}</span>
-      <span style={{ padding: '0.05em 0.4em 0' }}>{den}</span>
-    </span>
-  )
-}
-function ch9_subOps(s) {
-  return String(s)
-    .replace(/\\times/g, '×').replace(/\\div/g, '÷')
-    .replace(/\\approx/g, '≈').replace(/\\to\b/g, '→')
-    .replace(/\\le\b/g, '≤').replace(/\\ge\b/g, '≥')
-    .replace(/\\cdot/g, '·').replace(/\\pm/g, '±')
-    .replace(/\\pi/g, 'π').replace(/\\theta/g, 'θ')
-    .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
-    .replace(/\\sqrt(\d+)/g, '√$1')
-    .replace(/\\ell\b/g, 'ℓ')
-    .replace(/\\circ/g, '°')
-    .replace(/\\u2208/g, '∈').replace(/\\u2209/g, '∉')
-    .replace(/\\u2205/g, '∅')
-    .replace(/\\u222a/g, '∪').replace(/\\u2229/g, '∩')
-    .replace(/\\u2286/g, '⊆').replace(/\\u2282/g, '⊂')
-    .replace(/\\u2113/g, 'ℓ')
-    .replace(/\\u00b0/g, '°')
-    .replace(/\\u2019/g, '’')
-    .replace(/\\u2032/g, '′')
-    .replace(/\\u2013/g, '–')
-    .replace(/\\u2660/g, '♠')
-    .replace(/\\u2663/g, '♣')
-    .replace(/\\u2665/g, '♥')
-    .replace(/\\u2666/g, '♦')
-    .replace(/\\dot\{(\d)\}/g, '$1̇')
-    .replace(/\\\$/g, '$').replace(/\\%/g, '%')
-}
-function ch9RenderMath(text) {
-  if (text == null) return null
-  const src = ch9_subOps(text).replace(/\\left\(/g, '(').replace(/\\right\)/g, ')')
-  const out = []
-  let i = 0, buf = ''
-  const flush = () => { if (buf) { out.push(buf); buf = '' } }
-  while (i < src.length) {
-    if (src.startsWith('\\frac{', i)) {
-      flush()
-      let j = i + 6, depth = 1
-      const ns = j
-      while (j < src.length) { if (src[j] === '{') depth++; else if (src[j] === '}') { depth--; if (depth === 0) break } j++ }
-      const numStr = src.slice(ns, j); j++
-      if (src[j] !== '{') { buf += src.slice(i, j); i = j; continue }
-      j++; depth = 1
-      const ds = j
-      while (j < src.length) { if (src[j] === '{') depth++; else if (src[j] === '}') { depth--; if (depth === 0) break } j++ }
-      const denStr = src.slice(ds, j); j++
-      out.push(<Ch9Frac key={`f${out.length}`} num={ch9RenderMath(numStr)} den={ch9RenderMath(denStr)} />)
-      i = j
-    } else if (src[i] === '^') {
-      const m = src.slice(i).match(/^\^(-?\d+)/)
-      if (m) { flush(); out.push(<sup key={`s${out.length}`} style={{ fontSize: '0.72em', verticalAlign: 'super' }}>{m[1]}</sup>); i += m[0].length }
-      else { buf += src[i]; i++ }
-    } else { buf += src[i]; i++ }
-  }
-  flush()
-  return out
-}
-
-const CH9_AUTO_ADVANCE_MS = 5000
-
-function Chapter9App({ onBack }) {
-  const [progress, setProgress] = useState(ch9_loadProgress)
-  const [activeId, setActiveId] = useState(null)
-  const [phase, setPhase] = useState('teach')
-  const [qIdx, setQIdx] = useState(0)
-  const [playList, setPlayList] = useState([])
-  const [lastWrongSrc, setLastWrongSrc] = useState(null)
-  const [selectedIdx, setSelectedIdx] = useState(null)
-  const [fillInput, setFillInput] = useState('')
-  const [revealed, setRevealed] = useState(false)
-  const [isCorrect, setIsCorrect] = useState(false)
-  const [autoCountdown, setAutoCountdown] = useState(0)
-  const inputRef = useRef(null)
-  const autoTimerRef = useRef(null)
-  const advanceRef = useRef(() => {})
-
-  const lesson = activeId ? CH9_LESSONS.find(l => l.id === activeId) : null
-  const currentSourceIdx = playList[qIdx]
-  const currentQ = lesson && currentSourceIdx != null ? lesson.questions[currentSourceIdx] : null
-  const isRetry = useMemo(() => {
-    if (currentSourceIdx == null) return false
-    return playList.slice(0, qIdx).includes(currentSourceIdx)
-  }, [playList, qIdx, currentSourceIdx])
-
-  const optionOrder = useMemo(() => {
-    if (!currentQ || currentQ.kind !== 'mcq') return []
-    return ch9_seededShuffle(currentQ.options.length, `${activeId}-${qIdx}-${currentSourceIdx}-${currentQ.prompt}`)
-  }, [activeId, qIdx, currentSourceIdx, currentQ])
-  const correctDisplayIdx = useMemo(() => optionOrder.indexOf(currentQ?.correct ?? -1), [optionOrder, currentQ])
-
-  useEffect(() => { ch9_saveProgress(progress) }, [progress])
-
-  useEffect(() => {
-    if (phase !== 'practice' || revealed) return
-    if (currentQ?.kind?.startsWith('fill') && inputRef.current) inputRef.current.focus()
-  }, [phase, qIdx, revealed, currentQ])
-
-  const startLesson = (id) => {
-    setActiveId(id)
-    const lessonRef = CH9_LESSONS.find(l => l.id === id)
-    const initial = Array.from({ length: lessonRef.questions.length }, (_, i) => i)
-    setPlayList(initial)
-    setLastWrongSrc(null)
-    const p = progress[id] || {}
-    if (p.teachSeen) { setPhase('practice'); setQIdx(p.qIdx || 0) }
-    else { setPhase('teach'); setQIdx(0) }
-    setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-  }
-
-  const acknowledgeTeach = () => {
-    setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: 0 } }))
-    setPhase('practice'); setQIdx(0)
-    setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-    setLastWrongSrc(null)
-  }
-
-  const submitFill = () => {
-    if (!currentQ) return
-    if (revealed) { advance(); return }
-    const ok = ch9_checkFill(currentQ, fillInput)
-    setIsCorrect(ok); setRevealed(true)
-    setLastWrongSrc(ok ? null : currentSourceIdx)
-  }
-
-  const pickMcq = (displayIdx) => {
-    if (!currentQ || revealed || currentQ.kind !== 'mcq') return
-    const optSourceIdx = optionOrder[displayIdx]
-    const ok = optSourceIdx === currentQ.correct
-    setSelectedIdx(displayIdx); setIsCorrect(ok); setRevealed(true)
-    setLastWrongSrc(ok ? null : currentSourceIdx)
-  }
-
-  const cancelAutoAdvance = () => {
-    if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null }
-    setAutoCountdown(0)
-  }
-
-  const advance = () => {
-    cancelAutoAdvance()
-    if (!lesson) return
-    let workingList = playList
-    if (lastWrongSrc != null) {
-      // Wrong answers go to the END of the lesson — student finishes all
-      // fresh questions first, then meets the retry cluster at the tail.
-      workingList = [...playList, lastWrongSrc]
-      setPlayList(workingList)
-      setLastWrongSrc(null)
-    }
-    const next = qIdx + 1
-    if (next >= workingList.length) {
-      setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: lesson.questions.length, completed: true } }))
-      setPhase('done')
-    } else {
-      setQIdx(next)
-      setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-      setProgress(p => ({ ...p, [activeId]: { ...(p[activeId] || {}), teachSeen: true, qIdx: Math.min(lesson.questions.length, next) } }))
-    }
-  }
-  advanceRef.current = advance
-
-  const jumpToQuestion = (i) => {
-    cancelAutoAdvance()
-    if (!lesson) return
-    const clamped = Math.max(0, Math.min(playList.length - 1, i))
-    setQIdx(clamped); setLastWrongSrc(null)
-    setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-    setProgress(p => {
-      const cur = p[activeId] || {}
-      const saved = Math.max(cur.qIdx || 0, Math.min(lesson.questions.length, clamped))
-      return { ...p, [activeId]: { ...cur, teachSeen: true, qIdx: saved } }
-    })
-  }
-
-  const backToOverview = () => {
-    cancelAutoAdvance()
-    setActiveId(null); setPhase('teach'); setQIdx(0)
-    setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
-  }
-
-  const resetAll = () => {
-    if (!confirm('Reset all Chapter 9 progress?')) return
-    setProgress({}); ch9_saveProgress({})
-    backToOverview()
-  }
-
-  useEffect(() => {
-    if (phase !== 'practice' || !revealed) { cancelAutoAdvance(); return }
-    const total = Math.round(CH9_AUTO_ADVANCE_MS / 1000)
-    setAutoCountdown(total)
-    autoTimerRef.current = setInterval(() => {
-      setAutoCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(autoTimerRef.current); autoTimerRef.current = null
-          advanceRef.current()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null } }
-  }, [phase, revealed, qIdx, activeId])
-
-  useEffect(() => {
-    if (phase !== 'practice' || !currentQ) return
-    const onKey = (e) => {
-      if (revealed) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance() }
-        return
-      }
-      if (currentQ.kind === 'mcq') {
-        const k = e.key
-        if (/^[1-9]$/.test(k)) {
-          const i = parseInt(k, 10) - 1
-          if (i < currentQ.options.length) { e.preventDefault(); pickMcq(i) }
-        }
-      } else if (currentQ.kind?.startsWith('fill')) {
-        if (e.key === 'Enter') { e.preventDefault(); submitFill() }
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [phase, qIdx, revealed, currentQ, fillInput, optionOrder])
-
-  // ────────── Overview ──────────
-  if (!activeId) {
-    const total = CH9_LESSONS.length
-    const done = CH9_LESSONS.filter(l => progress[l.id]?.completed).length
-    return (
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
-          <button className="back-button" onClick={onBack}>← Home</button>
-          <button className="back-button" style={{ marginLeft: 'auto' }} onClick={resetAll}>Reset progress</button>
-        </div>
-        <h1 style={{ marginBottom: 4 }}>Chapter 9 — Sequences, Surds & Sets</h1>
-        <p className="subtitle" style={{ marginTop: 0 }}>
-          Cambridge IGCSE Mathematics · {done}/{total} lessons complete
-        </p>
-        <p style={{ opacity: 0.85, marginTop: 8 }}>
-          Pick the next lesson. Each one starts with a short explanation, then a stream of multiple-choice and fill-in-the-blank
-          questions — easy warm-ups first, then the actual chapter exercise problems.
-        </p>
-        <ol style={{ listStyle: 'none', padding: 0, marginTop: 16 }}>
-          {CH9_LESSONS.map((l) => {
-            const p = progress[l.id] || {}
-            const completed = p.completed
-            const inProg = !completed && (p.teachSeen || (p.qIdx || 0) > 0)
-            return (
-              <li key={l.id} style={{ marginBottom: 8 }}>
-                <button
-                  onClick={() => startLesson(l.id)}
-                  style={{
-                    width: '100%', textAlign: 'left', padding: '12px 14px',
-                    borderRadius: 10,
-                    borderLeft: completed ? '4px solid #2ea043' : inProg ? '4px solid #388bfd' : '1px solid var(--clr-border, #444)',
-                    borderTop: '1px solid ' + (completed ? '#2ea043' : 'var(--clr-border, #444)'),
-                    borderRight: '1px solid ' + (completed ? '#2ea043' : 'var(--clr-border, #444)'),
-                    borderBottom: '1px solid ' + (completed ? '#2ea043' : 'var(--clr-border, #444)'),
-                    background: completed
-                      ? 'linear-gradient(90deg, rgba(46,160,67,0.32) 0%, rgba(46,160,67,0.18) 100%)'
-                      : inProg ? 'rgba(56,139,253,0.10)' : 'var(--clr-surface, #1c1c1f)',
-                    color: 'var(--clr-text)',
-                    fontWeight: completed ? 600 : 400,
-                    cursor: 'pointer', fontSize: '0.95rem',
-                    boxShadow: completed ? '0 0 0 1px rgba(46,160,67,0.35) inset' : 'none',
-                  }}
-                >
-                  <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : '○'}</span>
-                  {ch9RenderMath(l.title)}
-                  {completed && (
-                    <span style={{
-                      float: 'right', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.5px',
-                      color: '#fff', background: '#2ea043', padding: '2px 8px', borderRadius: 10,
-                    }}>DONE</span>
-                  )}
-                  {p.qIdx > 0 && !completed && (
-                    <span style={{ float: 'right', fontSize: '0.8rem', opacity: 0.7 }}>{p.qIdx}/{l.questions.length}</span>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </div>
-    )
-  }
-
-  // ────────── Teach ──────────
-  if (phase === 'teach') {
-    return (
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button className="back-button" onClick={backToOverview}>← Lessons</button>
-        </div>
-        <h2 style={{ marginBottom: 4 }}>{ch9RenderMath(lesson.title)}</h2>
-        <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{ch9RenderMath(lesson.teach.heading)}</h3>
-        {lesson.teach.body.map((para, i) => (
-          <p key={i} style={{ lineHeight: 1.7, marginBottom: 10, fontSize: '1rem' }}>{ch9RenderMath(para)}</p>
-        ))}
-        <div style={{
-          marginTop: 14, padding: 14, borderRadius: 8,
-          background: 'rgba(108,206,255,0.08)', border: '1px solid rgba(108,206,255,0.25)',
-          fontSize: '1rem', lineHeight: 1.7,
-        }}>
-          <strong>Worked example: </strong>{ch9RenderMath(lesson.teach.example)}
-        </div>
-        {lesson.qFormat && <p style={{ marginTop: 14, fontSize: '0.9rem', opacity: 0.8 }}><em>Note:</em> {lesson.qFormat}</p>}
-        <button onClick={acknowledgeTeach} style={{
-          marginTop: 18, padding: '10px 18px', borderRadius: 8, fontSize: '1rem',
-          background: 'var(--clr-accent, #2ea043)', color: 'white', border: 'none', cursor: 'pointer',
-        }}>I've got it — start questions →</button>
-      </div>
-    )
-  }
-
-  // ────────── Done ──────────
-  if (phase === 'done') {
-    const idx = CH9_LESSONS.findIndex(l => l.id === activeId)
-    const next = CH9_LESSONS[idx + 1]
-    return (
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <button className="back-button" onClick={backToOverview}>← Lessons</button>
-        </div>
-        <h2>🎉 Lesson complete</h2>
-        <p>You finished <strong>{ch9RenderMath(lesson.title)}</strong>.</p>
-        {next ? (
-          <button onClick={() => startLesson(next.id)} style={{
-            marginTop: 12, padding: '10px 18px', borderRadius: 8, fontSize: '1rem',
-            background: 'var(--clr-accent, #2ea043)', color: 'white', border: 'none', cursor: 'pointer',
-          }}>Next: {ch9RenderMath(next.title)} →</button>
-        ) : (
-          <p style={{ marginTop: 16, fontSize: '1.05rem' }}>🎓 You've completed every lesson in Chapter 9.</p>
-        )}
-        <button onClick={backToOverview} style={{
-          marginTop: 12, marginLeft: 8, padding: '10px 18px', borderRadius: 8,
-          background: 'transparent', color: 'var(--clr-text)', border: '1px solid var(--clr-border, #555)', cursor: 'pointer',
-        }}>Back to lessons</button>
-      </div>
-    )
-  }
-
-  // ────────── Practice ──────────
-  const sliderMax = Math.max(1, playList.length)
-  return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem', color: 'var(--clr-text)' }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-        <button className="back-button" onClick={backToOverview}>← Lessons</button>
-        <button className="back-button" onClick={() => setPhase('teach')}>📖 Re-read teach</button>
-        <span style={{ marginLeft: 'auto', fontSize: '0.85rem', opacity: 0.75 }}>
-          Question {qIdx + 1} / {sliderMax}
-          {sliderMax > lesson.questions.length && (
-            <span style={{ marginLeft: 6, color: '#f0a020' }}>· {sliderMax - lesson.questions.length} retry queued</span>
-          )}
-        </span>
-      </div>
-      <h3 style={{ marginBottom: 8 }}>{ch9RenderMath(lesson.title)}</h3>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 18, textAlign: 'right' }}>1</span>
-        <input
-          type="range"
-          min={1}
-          max={sliderMax}
-          value={qIdx + 1}
-          onChange={e => jumpToQuestion(parseInt(e.target.value, 10) - 1)}
-          aria-label="Jump to question"
-          style={{
-            flex: 1, accentColor: 'var(--clr-accent, #2ea043)',
-            cursor: 'pointer', height: 22,
-          }}
-        />
-        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 22 }}>{sliderMax}</span>
-      </div>
-
-      <div style={{
-        padding: '22px 24px', borderRadius: 10, background: 'var(--clr-surface, #1c1c1f)',
-        border: '1px solid var(--clr-border, #333)', marginBottom: 16,
-        fontSize: '1.25rem', lineHeight: 2.1, textAlign: 'center',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80,
-        position: 'relative',
-      }}>
-        {isRetry && (
-          <span style={{
-            position: 'absolute', top: 8, right: 12, fontSize: '0.7rem', fontWeight: 700,
-            letterSpacing: '0.5px', color: '#f0a020', background: 'rgba(240,160,32,0.15)',
-            border: '1px solid rgba(240,160,32,0.45)', padding: '2px 8px', borderRadius: 10,
-          }}>↻ RETRY</span>
-        )}
-        <span>{ch9RenderMath(currentQ.prompt)}</span>
-      </div>
-
-      {currentQ.kind === 'mcq' ? (
-        <div className="options-list">
-          {optionOrder.map((srcIdx, displayIdx) => {
-            const opt = currentQ.options[srcIdx]
-            const isSelected = selectedIdx === displayIdx
-            const isCorrectOpt = revealed && correctDisplayIdx === displayIdx
-            const isWrongPick = revealed && isSelected && !isCorrect
-            return (
-              <button
-                key={displayIdx}
-                className={`option-card ${isSelected ? 'selected' : ''} ${isCorrectOpt ? 'correct-option' : ''} ${isWrongPick ? 'wrong-option' : ''}`}
-                onClick={() => pickMcq(displayIdx)}
-                disabled={revealed}
-                style={{
-                  borderColor: isCorrectOpt ? 'var(--clr-correct, #2ea043)' : isWrongPick ? 'var(--clr-wrong, #f85149)' : undefined,
-                  background: isCorrectOpt ? 'rgba(46,160,67,0.15)' : isWrongPick ? 'rgba(248,81,73,0.15)' : undefined,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative', padding: '18px 24px', minHeight: 64,
-                  fontSize: '1.1rem', lineHeight: 1.9,
-                }}
-              >
-                <span style={{
-                  position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)',
-                  fontWeight: 700, opacity: 0.6, fontSize: '0.95rem',
-                }}>{CH9_OPTION_LABEL[displayIdx]}.</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>{ch9RenderMath(opt)}</span>
-              </button>
-            )
-          })}
-        </div>
-      ) : (
-        <>
-          <input
-            ref={inputRef}
-            type="text"
-            value={fillInput}
-            onChange={e => setFillInput(e.target.value)}
-            disabled={revealed}
-            placeholder="Your answer…"
-            autoComplete="off"
-            style={{
-              width: '100%', padding: '14px 16px', fontSize: '1.15rem', borderRadius: 8,
-              border: '1px solid var(--clr-border, #555)', textAlign: 'center',
-              background: revealed ? 'rgba(255,255,255,0.04)' : 'var(--clr-surface, #1c1c1f)',
-              color: 'var(--clr-text)', boxSizing: 'border-box',
-            }}
-          />
-          {!revealed && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'center' }}>
-              <button onClick={submitFill} disabled={!fillInput.trim()} style={{
-                padding: '10px 22px', borderRadius: 6, background: 'var(--clr-accent, #2ea043)',
-                color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.95rem',
-                opacity: fillInput.trim() ? 1 : 0.5,
-              }}>Check</button>
-            </div>
-          )}
-        </>
-      )}
-
-      {revealed && (
-        <>
-          <div style={{
-            marginTop: 16, padding: 16, borderRadius: 8,
-            background: isCorrect ? 'rgba(46,160,67,0.15)' : 'rgba(248,81,73,0.15)',
-            border: `1px solid ${isCorrect ? 'rgba(46,160,67,0.45)' : 'rgba(248,81,73,0.45)'}`,
-            fontSize: '1rem', lineHeight: 1.9,
-          }}>
-            <strong>{isCorrect ? '✅ Correct!' : '❌ Not quite.'}</strong>
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-              <strong>Answer:</strong>
-              <span>{currentQ.kind === 'mcq'
-                ? ch9RenderMath(currentQ.options[currentQ.correct])
-                : ch9RenderMath(String(currentQ.answer))}</span>
-            </div>
-            {currentQ.solution && (
-              <div style={{ marginTop: 8, opacity: 0.9, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                <strong>Working:</strong>
-                <span>{ch9RenderMath(currentQ.solution)}</span>
               </div>
             )}
           </div>
@@ -11423,18 +10006,6 @@ function App() {
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
         <Chapter8App onBack={() => { window.location.href = '/' }} />
-      </>
-    )
-  }
-
-  // Route: /chapter9 → Cambridge IGCSE Chapter 9 (Sequences, Surds and Sets)
-  if (pathname === '/chapter9') {
-    return (
-      <>
-        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
-        <Chapter9App onBack={() => { window.location.href = '/' }} />
       </>
     )
   }
