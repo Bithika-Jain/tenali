@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.70'
-const TENALI_BUILD_DATE = '2026-05-01 11:03 IST'
+const TENALI_VERSION = '1.0.71'
+const TENALI_BUILD_DATE = '2026-05-01 15:55 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -6024,6 +6024,23 @@ function Chapter5App({ onBack }) {
   }
   advanceRef.current = advance
 
+  // Jump straight to question `i` (0-indexed). Used by the slider so the
+  // student can skip ahead or revisit any question in the lesson.
+  const jumpToQuestion = (i) => {
+    cancelAutoAdvance()
+    if (!lesson) return
+    const clamped = Math.max(0, Math.min(lesson.questions.length - 1, i))
+    setQIdx(clamped)
+    setSelectedIdx(null); setFillInput(''); setRevealed(false); setIsCorrect(false)
+    setProgress(p => {
+      const cur = p[activeId] || {}
+      // Don't *lower* the saved high-water-mark when the student rewinds —
+      // qIdx in storage tracks furthest-reached, not current position.
+      const saved = Math.max(cur.qIdx || 0, clamped)
+      return { ...p, [activeId]: { ...cur, teachSeen: true, qIdx: saved } }
+    })
+  }
+
   const backToOverview = () => {
     cancelAutoAdvance()
     setActiveId(null); setPhase('teach'); setQIdx(0)
@@ -6096,26 +6113,22 @@ function Chapter5App({ onBack }) {
           questions — easy warm-ups first, then the actual chapter exercise problems.
         </p>
         <ol style={{ listStyle: 'none', padding: 0, marginTop: 16 }}>
-          {CH5_LESSONS.map((l, i) => {
+          {CH5_LESSONS.map((l) => {
             const p = progress[l.id] || {}
             const completed = p.completed
             const inProg = !completed && (p.teachSeen || (p.qIdx || 0) > 0)
-            const prevDone = i === 0 || progress[CH5_LESSONS[i - 1].id]?.completed
-            const accessible = prevDone || inProg || completed
             return (
               <li key={l.id} style={{ marginBottom: 8 }}>
                 <button
-                  onClick={() => accessible && startLesson(l.id)}
-                  disabled={!accessible}
+                  onClick={() => startLesson(l.id)}
                   style={{
                     width: '100%', textAlign: 'left', padding: '12px 14px', borderRadius: 10,
                     border: '1px solid var(--clr-border, #444)',
                     background: completed ? 'rgba(46,160,67,0.12)' : inProg ? 'rgba(56,139,253,0.10)' : 'var(--clr-surface, #1c1c1f)',
-                    color: 'var(--clr-text)', cursor: accessible ? 'pointer' : 'not-allowed',
-                    opacity: accessible ? 1 : 0.55, fontSize: '0.95rem',
+                    color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem',
                   }}
                 >
-                  <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : accessible ? '○' : '🔒'}</span>
+                  <span style={{ marginRight: 8 }}>{completed ? '✅' : inProg ? '▶' : '○'}</span>
                   {l.title}
                   {p.qIdx > 0 && !completed && (
                     <span style={{ float: 'right', fontSize: '0.8rem', opacity: 0.7 }}>{p.qIdx}/{l.questions.length}</span>
@@ -6194,9 +6207,23 @@ function Chapter5App({ onBack }) {
           Question {qIdx + 1} / {lesson.questions.length}
         </span>
       </div>
-      <h3 style={{ marginBottom: 4 }}>{lesson.title}</h3>
-      <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ width: `${(qIdx / lesson.questions.length) * 100}%`, height: '100%', background: 'var(--clr-accent, #2ea043)', transition: 'width 0.3s' }} />
+      <h3 style={{ marginBottom: 8 }}>{lesson.title}</h3>
+      {/* Question slider — drag to jump to any question in the lesson */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 18, textAlign: 'right' }}>1</span>
+        <input
+          type="range"
+          min={1}
+          max={lesson.questions.length}
+          value={qIdx + 1}
+          onChange={e => jumpToQuestion(parseInt(e.target.value, 10) - 1)}
+          aria-label="Jump to question"
+          style={{
+            flex: 1, accentColor: 'var(--clr-accent, #2ea043)',
+            cursor: 'pointer', height: 22,
+          }}
+        />
+        <span style={{ fontSize: '0.78rem', opacity: 0.65, minWidth: 22 }}>{lesson.questions.length}</span>
       </div>
 
       <div style={{
