@@ -8058,6 +8058,63 @@ const Bridge20App = makeBridgeApp({
   nextHref: '/chapter5', nextLabel: 'On to Lesson 10',
 })
 
+// ─── Bridge 21 — % Increase / Decrease ────────────────────────────────
+function generateBridge21Question() {
+  // Pick original O and a target percent change P (integer), then compute new.
+  // Direction: 50/50 increase/decrease.
+  const isIncrease = Math.random() < 0.5
+  const Oq = bridge_pick([10, 12, 20, 25, 40, 50, 80, 100, 120, 200, 300, 400, 500])
+  const Mu = bridge_randInt(1, 20)
+  const O = Oq * Mu
+  const Pp = bridge_pick([2, 4, 5, 8, 10, 15, 20, 25, 30, 40, 50])
+  const change = (O * Pp) / 100
+  if (!Number.isInteger(change)) return generateBridge21Question()
+  const N = isIncrease ? O + change : O - change
+  if (N <= 0) return generateBridge21Question()
+  const direction = isIncrease ? 'increase' : 'decrease'
+  const prompt = `A value goes from ${O} to ${N}. What is the percentage ${direction}?`
+  const answer = Pp
+  const candidates = [
+    Math.round((change / N) * 100),     // used new as base (classic mistake)
+    change,                              // forgot to ×100 / used absolute change
+    Math.round((N / O) * 100),
+    Math.round((O / N) * 100),
+    Pp + 5, Pp - 5, Pp * 2,
+  ]
+  const { options, correctIndex } = bridge_buildOptions(answer, candidates.map(c => Math.abs(c)).filter(c => c > 0))
+  return { prompt, options, correctIndex,
+           explanation: `Change = |${N} − ${O}| = ${change}.   % ${direction} = (change ÷ ORIGINAL) × 100 = (${change} ÷ ${O}) × 100 = ${Pp}%.   (Always divide by the ORIGINAL, not the new value.)` }
+}
+
+function Lesson11ProgressionStrip({ current }) {
+  const nodes = [
+    { id: 'lesson10', label: 'Lesson 10', sub: 'X as % of Y',          href: '/chapter5', done: ch5LessonDone('L10') },
+    { id: 'bridge21', label: 'Bridge 21', sub: '% Increase / Decrease', href: '/bridge21' },
+    { id: 'lesson11', label: 'Lesson 11', sub: '% Inc/Dec',             href: '/chapter5' },
+  ]
+  return renderProgressionStrip('Lesson 11 — Prerequisite Path', nodes, current)
+}
+
+const Bridge21App = makeBridgeApp({
+  id: 'bridge21', currentNode: 'bridge21', StripComponent: Lesson11ProgressionStrip,
+  title: 'Bridge 21 · % Increase / Decrease',
+  subtitle: 'Find the percentage change between an old value and a new one.',
+  intro: 'Compare the CHANGE (how much it went up or down) to the ORIGINAL value — never to the new value.  Then turn that fraction into a percent.',
+  teach: {
+    rule: ['Step 1: change = |new − original|.   Step 2: % change = (change ÷ original) × 100.   New > original → INCREASE.  New < original → DECREASE.   Critical:  always divide by the ORIGINAL, not the new value.'],
+    example: {
+      setup: 'Bike\'s price: $12 → $15. % increase?',
+      steps: [
+        'Change = 15 − 12 = 3.',
+        '% increase = (3 ÷ 12) × 100 = 25.',
+      ],
+      answer: '25% increase.',
+    },
+  },
+  generator: generateBridge21Question,
+  nextHref: '/chapter5', nextLabel: 'On to Lesson 11',
+})
+
 function Chapter5App({ onBack }) {
   const [progress, setProgress] = useState(ch5_loadProgress)
   const [activeId, setActiveId] = useState(null)
@@ -8318,6 +8375,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
         {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
         {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
+        {activeId === 'L11' && <Lesson11ProgressionStrip current="lesson11" />}
         <h2 style={{ marginBottom: 4 }}>{ch5RenderMath(lesson.title)}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
@@ -8358,6 +8416,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
         {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
         {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
+        {activeId === 'L11' && <Lesson11ProgressionStrip current="lesson11" />}
         <h2>🎉 Lesson complete</h2>
         <p>You finished <strong>{ch5RenderMath(lesson.title)}</strong>.</p>
         {next ? (
@@ -8400,6 +8459,7 @@ function Chapter5App({ onBack }) {
       {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
       {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
       {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
+      {activeId === 'L11' && <Lesson11ProgressionStrip current="lesson11" />}
       <h3 style={{ marginBottom: 8 }}>{ch5RenderMath(lesson.title)}</h3>
       {/* Question slider — drag to jump to any question in the play sequence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -35117,6 +35177,7 @@ function App() {
   if (pathname === '/bridge18') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge18App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge19') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge19App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge20') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge20App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge21') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge21App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
 
   // Route: /chapter1 → Cambridge IGCSE Chapter 1 (Reviewing Number Concepts)
   if (pathname === '/chapter1') {
