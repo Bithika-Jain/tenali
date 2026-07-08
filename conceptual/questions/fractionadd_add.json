@@ -1,0 +1,15 @@
+{
+  "id": 1002,
+  "topic": "fractionadd",
+  "op": "+",
+  "question": "What is the key requirement before you can add two fractions with different denominators?",
+  "options": [
+    "Multiply the numerators first",
+    "Find a common denominator (typically the LCM of the denominators)",
+    "Simply add the denominators together",
+    "Convert them both into decimals first"
+  ],
+  "answerOption": "B",
+  "answerText": "Find a common denominator (typically the LCM of the denominators)",
+  "explanation": "Before adding or subtracting fractions, their denominators must be the same so that you are adding parts of equal size. You do this by finding a common denominator (usually the Lowest Common Multiple)."
+}

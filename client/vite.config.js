@@ -41,6 +41,8 @@ export default defineConfig({
       '/api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
       // Transfer challenge API
       '/transfer-api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
+      // Conceptual MCQ quiz API
+      '/conceptual-api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
       // General Knowledge quiz API
       '/gk-api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
       // Word Creator quiz API

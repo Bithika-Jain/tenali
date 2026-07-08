@@ -1,0 +1,14 @@
+{
+  "id": 1008,
+  "topic": "basicarith",
+  "question": "What is the result when you multiply two negative numbers?",
+  "options": [
+    "A negative number",
+    "A positive number",
+    "Zero",
+    "It depends on which number has a larger absolute value"
+  ],
+  "answerOption": "B",
+  "answerText": "A positive number",
+  "explanation": "Multiplying two signs that are the same always results in a positive number. Therefore, negative × negative = positive (and positive × positive = positive)."
+}

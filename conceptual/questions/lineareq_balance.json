@@ -1,0 +1,14 @@
+{
+  "id": 1005,
+  "topic": "lineareq",
+  "question": "When solving an equation, why must you perform the same operation on both sides of the equals sign?",
+  "options": [
+    "To double the values of both sides",
+    "To maintain the balance of equality so both sides remain equal",
+    "To convert variables into constants",
+    "To make the equations easier to graph"
+  ],
+  "answerOption": "B",
+  "answerText": "To maintain the balance of equality so both sides remain equal",
+  "explanation": "An equation represents a balanced scale. If you do something to one side (e.g. add 5 or divide by 2), you must do the exact same thing to the other side to keep the equation balanced and true."
+}
