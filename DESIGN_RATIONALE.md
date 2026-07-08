@@ -10,13 +10,14 @@ This document explains the technical approach, design rationale, implementation 
 ---
 
 ### Q2: In which topics is this feature available and working?
-**A:** Conceptual databases are seeded and fully functional for:
+**A:** The feature is available in **6 specific topics only for now**, and database coverage will be gradually populated to other mathematical topics over time. The 6 initial topics with fully functional conceptual databases are:
 - **Fraction Arithmetic (`fractionadd`)** — e.g., common denominator (LCM) rules and division reciprocals.
 - **Indices/Exponents (`indices`)** — e.g., zero index and negative exponent rules.
 - **Linear Equations (`lineareq`)** — e.g., balanced equality properties.
 - **Trigonometry (`trig`)** — e.g., sine/cosine/tangent ratios (SOHCAHTOA).
 - **Basic Arithmetic (`basicarith`)** — e.g., rules for multiplying signed integers.
 - **Quadratic Formula (`qformula`)** — e.g., discriminant properties and root counts.
+
 
 ---
 
@@ -68,37 +69,3 @@ This document explains the technical approach, design rationale, implementation 
 3. **Demonstrating Extensibility:** In software engineering reviews, demonstrating an extensible architecture is highly valued. The fact that the frontend factory (`makeQuizApp`) and backend controller are 100% ready for all topics—and will **gracefully fallback to serving standard calculations** if a database is missing—serves as a strong architectural selling point. 
 
 To expand coverage to a new topic (e.g. `vectors`), you only need to drop a `vectors.json` question file into `server/conceptual/questions/`. The backend will automatically register it at startup without any code modifications.
-
----
-
-### Q11: How does Feature BC align with Tenali’s global "Solve Middleware" and Explanation Engine specification?
-**A:** In Tenali’s monolithic architecture, all math endpoints are wrapped by a global **Solve Middleware** that intercepts `POST *-api/check` requests. When a user requests a solution (`solve: true`), this middleware monkey-patches the response to invoke `generateExplanation(req, data)`. Feature BC integrates seamlessly into this system:
-- When a conceptual MCQ is solved via the Solve button, `POST /conceptual-api/check` is called.
-- The explanation generator checks if the request path contains `conceptual-api`, retrieves the corresponding question from memory, and returns the pre-authored pedagogical `explanation` string directly.
-- This ensures that conceptual MCQs have the same step-by-step Socratic walkthroughs as numerical problems, without needing separate frontend rendering structures.
-
----
-
-### Q12: How does Feature BC interact with the adaptive scoring system and difficulty level progression (Easy, Medium, Hard, Extra Hard) defined in `SRS.md`?
-**A:** In the `makeQuizApp` factory, each quiz instance maintains a local, floating-point `adaptScore` (0.0 to 3.0). This score maps to four discrete difficulty tiers (`adaptiveLevel()`): Easy (0.0–1.0), Medium (1.0–1.75), Hard (1.75–2.5), and Extra Hard (2.5–3.0).
-- Feature BC utilizes these existing tiers. When a milestone or stage promotion is triggered, the client requests a conceptual question for the *current* difficulty level.
-- The backend matches this request to select appropriate questions.
-- A correct MCQ answer updates the `adaptScore` by a positive reward factor (`+0.25`), reinforcing progression.
-- An incorrect selection or a "Solve" trigger applies a penalty of `-0.35` to stabilize the difficulty curve, preventing students from advancing to harder numerical calculations without matching conceptual foundations.
-
----
-
-### Q13: How does the system handle error validation and graceful fallback if a conceptual question payload is invalid, empty, or missing for a topic?
-**A:** Stability is a core system requirement. In accordance with the validation specs:
-- The server checks that the conceptual question database exists and that each question object contains a valid `options` array with exactly 4 strings. If a request hits `/conceptual-api/question` with empty options, the server returns a `400 Bad Request`.
-- If a topic has no seeded JSON questions, or if a network error occurs, the client's `loadQuestion()` block catches the failure, logs a warning (`Conceptual question not found or failed for topic. Falling back to standard question`), and immediately makes a fallback fetch to the topic's normal calculation endpoint.
-- This ensures that a missing database file does not block student progress or crash the adaptive quiz loop.
-
----
-
-### Q14: Why was in-memory static JSON caching chosen over live database queries (MongoDB) for the conceptual question banks?
-**A:** To maintain a stateless, lightweight, and performant backend layout as specified in `SRS.md`:
-- Reading JSON files from disk during active quiz requests would introduce substantial I/O latency and database round-trips.
-- Instead, the server parses and indexes all conceptual JSON files under `conceptual/questions/` at startup and holds them in memory.
-- This results in sub-millisecond response times for `/conceptual-api/question` queries and guarantees high-performance parallel execution, even under heavy concurrent loads.
-
