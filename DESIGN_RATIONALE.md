@@ -10,14 +10,13 @@ This document explains the technical approach, design rationale, implementation 
 ---
 
 ### Q2: In which topics is this feature available and working?
-**A:** The feature is available in **6 specific topics only for now**, and database coverage will be gradually populated to other mathematical topics over time. The 6 initial topics with fully functional conceptual databases are:
+**A:** The feature is available in these 6 topics only for now, and will be populated to other topics gradually. The initial fully functional topics are:
 - **Fraction Arithmetic (`fractionadd`)** — e.g., common denominator (LCM) rules and division reciprocals.
 - **Indices/Exponents (`indices`)** — e.g., zero index and negative exponent rules.
 - **Linear Equations (`lineareq`)** — e.g., balanced equality properties.
 - **Trigonometry (`trig`)** — e.g., sine/cosine/tangent ratios (SOHCAHTOA).
 - **Basic Arithmetic (`basicarith`)** — e.g., rules for multiplying signed integers.
 - **Quadratic Formula (`qformula`)** — e.g., discriminant properties and root counts.
-
 
 ---
 
