@@ -783,6 +783,16 @@ function generateExplanation(req, data) {
     return `The correct answer is: ${correctText}\n\nTip: Read all options carefully before choosing.`;
   }
 
+  // ── Conceptual MCQ Questions ──────────────────────────────────
+  if (p.includes('conceptual-api')) {
+    const q = conceptualQuestions.find((item) => String(item.id) === String(b.id));
+    if (q && q.explanation) {
+      return q.explanation;
+    }
+    const correctText = d.correctAnswerText || d.correctAnswer || ans;
+    return `The correct answer is: ${correctText}`;
+  }
+
   // ── Linear Equations (solve ax + b = c) ───────────────────────
   if (p.includes('lineareq-api')) {
     let s = `Problem: ${b.prompt || b.display || 'Solve the linear equation'}\n\n`;
@@ -1060,6 +1070,24 @@ function loadQuestions() {
 // Load all GK questions at server startup
 const questions = loadQuestions();
 
+// Directory containing conceptual questions
+const conceptualDir = path.join(__dirname, '..', 'conceptual', 'questions');
+
+// Load all conceptual questions from JSON files
+function loadConceptual() {
+  if (!fs.existsSync(conceptualDir)) {
+    return [];
+  }
+  const files = fs.readdirSync(conceptualDir).filter((file) => file.endsWith('.json'));
+  return files.map((file) => {
+    const fullPath = path.join(conceptualDir, file);
+    return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+  });
+}
+
+// Load all conceptual questions at server startup
+const conceptualQuestions = loadConceptual();
+
 /**
  * HEALTH CHECK ENDPOINT
  * GET /api/health
@@ -1144,6 +1172,76 @@ app.post('/gk-api/check', (req, res) => {
     correctAnswer: q.answerOption,
     correctAnswerText: q.answerText,
     message: correct ? 'Correct! 🎉' : 'Wrong ❌',
+  });
+});
+
+/**
+ * CONCEPTUAL MCQ API
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * GET /conceptual-api/question
+ * Fetch a random conceptual multiple-choice question for a given topic
+ */
+app.get('/conceptual-api/question', (req, res) => {
+  const { topic, exclude } = req.query || {};
+  if (!topic) {
+    return res.status(400).json({ error: 'Missing topic parameter' });
+  }
+
+  let pool = conceptualQuestions.filter((q) => q.topic === topic);
+  if (!pool.length) {
+    return res.status(404).json({ error: `No conceptual questions for topic: ${topic}` });
+  }
+
+  // Validate options (400 Bad Request if empty or missing)
+  const invalidQuestion = pool.find(q => !q.options || !q.options.length);
+  if (invalidQuestion) {
+    return res.status(400).json({ error: 'Options array parameter is missing or empty' });
+  }
+
+  const excludeList = exclude ? exclude.split(',') : [];
+  const unseen = pool.filter((q) => !excludeList.includes(String(q.id)));
+  if (unseen.length > 0) {
+    pool = unseen;
+  }
+
+  const q = pool[Math.floor(Math.random() * pool.length)];
+
+  res.json({
+    id: q.id,
+    topic: q.topic,
+    question: q.question,
+    options: q.options,
+    isConceptual: true
+  });
+});
+
+/**
+ * POST /conceptual-api/check
+ * Verify the user's selected option for a conceptual MCQ
+ */
+app.post('/conceptual-api/check', (req, res) => {
+  const { id, answerOption } = req.body || {};
+  if (!id) {
+    return res.status(400).json({ error: 'Missing question ID' });
+  }
+
+  const q = conceptualQuestions.find((item) => String(item.id) === String(id));
+  if (!q) {
+    return res.status(404).json({ error: 'Question not found' });
+  }
+
+  const correct = String(answerOption || '').toUpperCase() === String(q.answerOption || '').toUpperCase();
+  const display = `${q.answerOption}) ${q.answerText}`;
+
+  res.json({
+    correct,
+    correctAnswer: q.answerOption,
+    correctAnswerText: q.answerText,
+    display,
+    message: correct ? 'Correct! 🎉' : 'Wrong ❌'
   });
 });
 

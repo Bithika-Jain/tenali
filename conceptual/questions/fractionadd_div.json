@@ -1,0 +1,15 @@
+{
+  "id": 1001,
+  "topic": "fractionadd",
+  "op": "÷",
+  "question": "What is the correct rule to divide one fraction by another?",
+  "options": [
+    "Multiply the numerators together and the denominators together",
+    "Invert the second fraction (reciprocal) and multiply",
+    "Add the denominators and subtract the numerators",
+    "Cross-multiply the numerators and write 1 as the denominator"
+  ],
+  "answerOption": "B",
+  "answerText": "Invert the second fraction (reciprocal) and multiply",
+  "explanation": "To divide by a fraction, we multiply by its reciprocal. This is the Keep-Change-Flip (KCF) rule: Keep the first fraction, Change division to multiplication, and Flip the second fraction."
+}

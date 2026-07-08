@@ -1,0 +1,14 @@
+{
+  "id": 1003,
+  "topic": "indices",
+  "question": "What is the value of any non-zero number raised to the power of 0 (e.g., x⁰)?",
+  "options": [
+    "0",
+    "1",
+    "x (the number itself)",
+    "undefined"
+  ],
+  "answerOption": "B",
+  "answerText": "1",
+  "explanation": "Any non-zero base raised to the power of 0 is always equal to 1. This is because xᵐ / xᵐ = xᵐ⁻ᵐ = x⁰. Since any non-zero number divided by itself is 1, x⁰ must equal 1."
+}
