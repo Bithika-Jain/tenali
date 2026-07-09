@@ -35458,6 +35458,14 @@ function TenthApp({ onBack }) {
   )
 }
 
+const isStage3Completed = (topicKey, completedTopics) => {
+  if (!completedTopics || !Array.isArray(completedTopics)) return false;
+  if (completedTopics.includes(topicKey)) return true;
+  return completedTopics.includes(`${topicKey}-easy`) &&
+         completedTopics.includes(`${topicKey}-medium`) &&
+         completedTopics.includes(`${topicKey}-hard`);
+};
+
 function App() {
   // Currently selected quiz mode (null = home menu, or key like 'gk', 'addition', etc.)
   const [mode, setMode] = useState(null)
@@ -35531,9 +35539,10 @@ function App() {
     }
   }
 
-  const markTopicCompleted = (topicKey) => {
-    if (completedTopics.includes(topicKey)) return
-    const next = [...completedTopics, topicKey]
+  const markTopicCompleted = (topicKey, difficulty = '') => {
+    const targetKey = difficulty ? `${topicKey}-${difficulty}` : topicKey;
+    if (completedTopics.includes(targetKey)) return
+    const next = [...completedTopics, targetKey]
     setCompletedTopics(next)
     syncProgressToServer(next, goldMastery, coins)
   }
@@ -36385,7 +36394,7 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0 }) {
       <div className="menu-grid" ref={gridRef}>
         {filteredRegular.map((app) => {
           const isGold = goldMastery.includes(app.key)
-          const isCompleted = completedTopics.includes(app.key)
+          const isCompleted = isStage3Completed(app.key, completedTopics)
           return (
             <button key={app.key} className={`menu-card ${isGold ? 'gold-card' : app.color}`} onClick={() => onSelect(app.key)}>
               <span className="menu-title">
@@ -36409,12 +36418,16 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0 }) {
             const topic = prompt("Enter topic key to toggle Stage 3 Mastery (e.g. percent, ratio, fractionadd):");
             if (topic) {
               const cleaned = topic.trim().toLowerCase();
-              if (completedTopics.includes(cleaned)) {
-                const next = completedTopics.filter(t => t !== cleaned);
+              const isComp = completedTopics.includes(cleaned) || 
+                             (completedTopics.includes(`${cleaned}-easy`) && 
+                              completedTopics.includes(`${cleaned}-medium`) && 
+                              completedTopics.includes(`${cleaned}-hard`));
+              if (isComp) {
+                const next = completedTopics.filter(t => t !== cleaned && t !== `${cleaned}-easy` && t !== `${cleaned}-medium` && t !== `${cleaned}-hard`);
                 localStorage.setItem('tenali-completed-topics', JSON.stringify(next));
                 window.location.reload();
               } else {
-                const next = [...completedTopics, cleaned];
+                const next = [...completedTopics, cleaned, `${cleaned}-easy`, `${cleaned}-medium`, `${cleaned}-hard`].filter((v, i, a) => a.indexOf(v) === i);
                 localStorage.setItem('tenali-completed-topics', JSON.stringify(next));
                 window.location.reload();
               }
@@ -36738,7 +36751,7 @@ function AdditionApp({ onBack, completedTopics = [], goldMastery = [], markTopic
     if (finished) {
       const pass = score / totalQ >= 0.8
       if (pass && markTopicCompleted) {
-        markTopicCompleted('addition')
+        markTopicCompleted('addition', isAdaptive ? 'adaptive' : difficulty)
       }
     }
   }, [finished, score, totalQ, markTopicCompleted])
@@ -36913,7 +36926,7 @@ function AdditionApp({ onBack, completedTopics = [], goldMastery = [], markTopic
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
         </div>
         <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        {completedTopics.includes('addition') && (
+        {isStage3Completed('addition', completedTopics) && (
           <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
               {goldMastery.includes('addition') ? (
@@ -39879,7 +39892,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
       if (finished) {
         const pass = score / totalQ >= 0.8
         if (pass && markTopicCompleted) {
-          markTopicCompleted(topicKey)
+          markTopicCompleted(topicKey, isAdaptive ? 'adaptive' : difficulty)
         }
       }
     }, [finished])
@@ -40041,7 +40054,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
             <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
           </div>
           <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-          {completedTopics.includes(topicKey) && (
+          {isStage3Completed(topicKey, completedTopics) && (
             <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
               <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
                 {goldMastery.includes(topicKey) ? (
@@ -43282,7 +43295,7 @@ function RatioApp({ onBack, completedTopics = [], goldMastery = [], markTopicCom
     if (finished) {
       const pass = score / totalQ >= 0.8
       if (pass && markTopicCompleted) {
-        markTopicCompleted('ratio')
+        markTopicCompleted('ratio', isAdaptive ? 'adaptive' : difficulty)
       }
     }
   }, [finished])
@@ -43416,7 +43429,7 @@ function RatioApp({ onBack, completedTopics = [], goldMastery = [], markTopicCom
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
         </div>
         <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        {completedTopics.includes('ratio') && (
+        {isStage3Completed('ratio', completedTopics) && (
           <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
               {goldMastery.includes('ratio') ? (
@@ -43486,7 +43499,7 @@ function PercentApp({ onBack, completedTopics = [], goldMastery = [], markTopicC
     if (finished) {
       const pass = score / totalQ >= 0.8
       if (pass && markTopicCompleted) {
-        markTopicCompleted('percent')
+        markTopicCompleted('percent', isAdaptive ? 'adaptive' : difficulty)
       }
     }
   }, [finished])
@@ -43619,7 +43632,7 @@ function PercentApp({ onBack, completedTopics = [], goldMastery = [], markTopicC
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
         </div>
         <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        {completedTopics.includes('percent') && (
+        {isStage3Completed('percent', completedTopics) && (
           <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
               {goldMastery.includes('percent') ? (
@@ -44170,7 +44183,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
     if (finished) {
       const pass = score / totalQ >= 0.8
       if (pass && markTopicCompleted) {
-        markTopicCompleted('fractionadd')
+        markTopicCompleted('fractionadd', isAdaptive ? 'adaptive' : difficulty)
       }
     }
   }, [finished])
@@ -44432,7 +44445,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
         </div>
         <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        {completedTopics.includes('fractionadd') && (
+        {isStage3Completed('fractionadd', completedTopics) && (
           <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
               {goldMastery.includes('fractionadd') ? (
