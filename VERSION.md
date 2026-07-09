@@ -361,16 +361,9 @@ The feature evolved from an initial concept of separate quizzes to an integrated
 ---
 
 ## Feature Demo
+*Note: To avoid bloating the repository clone size with large binary files (images/videos), demo media assets are not committed directly to the git source repository. Instead, they are uploaded directly in the Pull Request description.*
 
-### Figure 1
-![MCQ Choice Cards rendering in Fraction quiz](./assets/mcq_prompt_view.png)
-
-*The conceptual check-in card UI with choice options replacing the standard input field.*
-
-### Figure 2
-<video src="./assets/mcq_demo.mp4" controls width="100%"></video>
-
-*Dynamic green/red card coloring and explanation text displayed upon submitting a choice.*
+- **Screenshot & Video Demo**: Available directly inside the GitHub Pull Request description.
 
 ---
 
