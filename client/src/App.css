@@ -722,6 +722,92 @@ button:disabled {
   }
 }
 
+/* "Above" variant of the popover — used by the Learn These Words section,
+   which lives near the bottom of the welcome-box so the popover should
+   open upward to avoid clipping. */
+.glossary-term-wrapper--above .glossary-popover {
+  top: auto;
+  bottom: calc(100% + 7px);
+  animation: glossary-appear-above 0.13s ease;
+}
+
+@keyframes glossary-appear-above {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* LEARN THESE WORDS — Topic-page glossary preview           */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.learn-these-words-section {
+  margin: 0 0 16px 0;
+  padding: 12px 14px;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-left: 3px solid var(--clr-accent);
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.learn-these-words-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--clr-text-soft);
+  margin: 0 0 8px 0;
+  font-family: var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.learn-these-words-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.learn-these-words-list li {
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* In the Learn These Words chips, the term should look like a clickable
+   pill — keep the dotted underline but add a soft chip background so the
+   affordance reads as "tap me" without screaming. */
+.learn-these-words-list .glossary-term {
+  background: var(--clr-card);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--clr-border);
+  border-bottom-style: solid;
+  border-bottom-width: 1.5px;
+  border-bottom-color: var(--clr-border);
+}
+
+.learn-these-words-list .glossary-term:hover,
+.learn-these-words-list .glossary-term:focus-visible {
+  background: var(--clr-accent-soft);
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+
+.learn-these-words-list .glossary-term--open {
+  background: var(--clr-accent-soft);
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /* ANSWER INPUT - Text entry field for short answers */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */

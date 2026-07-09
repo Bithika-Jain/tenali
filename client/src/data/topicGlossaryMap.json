@@ -1,0 +1,456 @@
+{
+  "addition": [
+    "sum",
+    "integer",
+    "digit"
+  ],
+  "basic-arithmetic": [
+    "sum",
+    "product",
+    "quotient",
+    "difference",
+    "integer",
+    "BODMAS"
+  ],
+  "quadratics": [
+    "quadratic",
+    "equation",
+    "expression",
+    "coefficient",
+    "solve",
+    "factorise"
+  ],
+  "multiplication": [
+    "product",
+    "factor",
+    "multiple",
+    "integer"
+  ],
+  "coordinate-geometry": [
+    "midpoint",
+    "gradient",
+    "horizontal",
+    "vertical",
+    "perpendicular",
+    "parallel",
+    "y-intercept",
+    "x-intercept"
+  ],
+  "trigonometry": [
+    "sine",
+    "cosine",
+    "tangent line",
+    "opposite",
+    "adjacent",
+    "hypotenuse",
+    "right-angled triangle",
+    "angle of elevation"
+  ],
+  "inequalities": [
+    "inequality",
+    "solution",
+    "solve",
+    "expression",
+    "linear"
+  ],
+  "probability": [
+    "probability",
+    "event",
+    "outcome",
+    "biased",
+    "fair",
+    "tree diagram",
+    "mutually exclusive",
+    "independent"
+  ],
+  "statistics": [
+    "mean",
+    "median",
+    "mode",
+    "range",
+    "average",
+    "frequency",
+    "outlier",
+    "sample"
+  ],
+  "matrices": [
+    "matrix",
+    "row",
+    "column",
+    "order",
+    "determinant",
+    "identity matrix",
+    "inverse matrix",
+    "transpose"
+  ],
+  "vectors": [
+    "vector",
+    "magnitude",
+    "scalar",
+    "displacement"
+  ],
+  "dot-products": [
+    "vector",
+    "scalar",
+    "dot product",
+    "scalar product",
+    "magnitude"
+  ],
+  "transformations": [
+    "reflection",
+    "rotation",
+    "translation",
+    "enlargement",
+    "scale factor",
+    "transformation",
+    "symmetry",
+    "congruent"
+  ],
+  "mensuration": [
+    "area",
+    "perimeter",
+    "volume",
+    "surface area",
+    "net",
+    "cross-section",
+    "rectangle",
+    "triangle",
+    "circle"
+  ],
+  "bearings": [
+    "bearing",
+    "angle"
+  ],
+  "logarithms": [
+    "logarithm",
+    "log",
+    "exponential",
+    "exponential growth",
+    "exponential decay"
+  ],
+  "differentiation": [
+    "derivative",
+    "differentiation",
+    "gradient",
+    "stationary point",
+    "maximum",
+    "minimum",
+    "point of inflection",
+    "calculus"
+  ],
+  "number-bases": [
+    "digit",
+    "integer",
+    "base"
+  ],
+  "circle-theorems": [
+    "circle",
+    "arc",
+    "chord",
+    "tangent line",
+    "sector",
+    "segment",
+    "angle"
+  ],
+  "integration": [
+    "integration",
+    "integral",
+    "definite integral",
+    "area",
+    "calculus",
+    "antiderivative"
+  ],
+  "standard-form": [
+    "standard form",
+    "scientific notation",
+    "power",
+    "base"
+  ],
+  "bounds": [
+    "round",
+    "significant figures",
+    "decimal place",
+    "approximation"
+  ],
+  "speed-distance-time": [
+    "speed",
+    "distance",
+    "time",
+    "rate",
+    "unit"
+  ],
+  "variation": [
+    "proportion",
+    "ratio"
+  ],
+  "hcf-and-lcm": [
+    "factor",
+    "multiple",
+    "prime number",
+    "prime"
+  ],
+  "profit-and-loss": [
+    "profit",
+    "loss",
+    "revenue",
+    "discount",
+    "percentage"
+  ],
+  "rounding": [
+    "round",
+    "significant figures",
+    "decimal place",
+    "approximation"
+  ],
+  "binomial-theorem": [
+    "polynomial",
+    "expand",
+    "coefficient",
+    "term",
+    "expression"
+  ],
+  "complex-numbers": [
+    "integer",
+    "real number",
+    "rational number",
+    "irrational number"
+  ],
+  "angles": [
+    "angle",
+    "right angle",
+    "acute angle",
+    "obtuse angle",
+    "reflex angle",
+    "interior angle",
+    "exterior angle",
+    "parallel"
+  ],
+  "triangles": [
+    "triangle",
+    "equilateral triangle",
+    "isosceles triangle",
+    "scalene triangle",
+    "right-angled triangle",
+    "hypotenuse",
+    "angle"
+  ],
+  "congruence": [
+    "congruent",
+    "triangle",
+    "angle",
+    "vertex"
+  ],
+  "pythagoras-theorem": [
+    "hypotenuse",
+    "right-angled triangle",
+    "square root",
+    "square",
+    "triangle"
+  ],
+  "polygons": [
+    "polygon",
+    "quadrilateral",
+    "pentagon",
+    "hexagon",
+    "heptagon",
+    "octagon",
+    "interior angle"
+  ],
+  "similarity": [
+    "similar",
+    "scale factor",
+    "congruent",
+    "ratio",
+    "enlargement"
+  ],
+  "linear-equations": [
+    "equation",
+    "linear",
+    "variable",
+    "coefficient",
+    "solve",
+    "solution"
+  ],
+  "decimals": [
+    "decimal",
+    "recurring decimal",
+    "terminating decimal",
+    "digit",
+    "round"
+  ],
+  "limits": [
+    "limit",
+    "function",
+    "calculus",
+    "sequence"
+  ],
+  "inverse-trigonometry": [
+    "inverse sine",
+    "inverse cosine",
+    "inverse tangent",
+    "sine",
+    "cosine"
+  ],
+  "remainder-theorem": [
+    "polynomial",
+    "factorise",
+    "factor",
+    "expression"
+  ],
+  "herons-formula": [
+    "triangle",
+    "area",
+    "perimeter",
+    "square root"
+  ],
+  "shares-and-dividends": [
+    "profit",
+    "loss",
+    "percentage",
+    "principal",
+    "interest"
+  ],
+  "banking": [
+    "principal",
+    "interest",
+    "simple interest",
+    "compound interest",
+    "percentage"
+  ],
+  "sets": [
+    "set",
+    "element",
+    "subset",
+    "empty set",
+    "universal set",
+    "union",
+    "intersection",
+    "complement",
+    "Venn diagram"
+  ],
+  "sequences": [
+    "sequence",
+    "term",
+    "difference",
+    "ratio"
+  ],
+  "ratios": [
+    "ratio",
+    "proportion",
+    "percentage"
+  ],
+  "percentages": [
+    "percentage",
+    "percent",
+    "ratio",
+    "proportion"
+  ],
+  "indices": [
+    "exponent",
+    "power",
+    "base",
+    "standard form"
+  ],
+  "surds": [
+    "surd",
+    "square root",
+    "irrational number"
+  ],
+  "fractions": [
+    "fraction",
+    "numerator",
+    "denominator",
+    "equivalent fraction",
+    "proper fraction",
+    "improper fraction",
+    "mixed number"
+  ],
+  "square-roots": [
+    "square root",
+    "surd",
+    "power"
+  ],
+  "polynomial-multiplication": [
+    "polynomial",
+    "expand",
+    "expression",
+    "term",
+    "like terms",
+    "coefficient"
+  ],
+  "polynomial-factorisation": [
+    "polynomial",
+    "factorise",
+    "factor",
+    "expression",
+    "term"
+  ],
+  "prime-factors": [
+    "prime number",
+    "factor",
+    "prime"
+  ],
+  "quadratic-formula": [
+    "quadratic",
+    "root",
+    "solution",
+    "discriminant",
+    "equation"
+  ],
+  "simultaneous-equations": [
+    "equation",
+    "linear",
+    "solve",
+    "solution"
+  ],
+  "functions": [
+    "function",
+    "variable",
+    "expression"
+  ],
+  "line-equation": [
+    "gradient",
+    "y-intercept",
+    "x-intercept",
+    "linear",
+    "equation"
+  ],
+  "gst": [
+    "percentage",
+    "percent",
+    "discount"
+  ],
+  "section-formula": [
+    "midpoint",
+    "gradient",
+    "ratio",
+    "perpendicular bisector"
+  ],
+  "linear-programming": [
+    "linear",
+    "inequality",
+    "equation",
+    "solution",
+    "maximum",
+    "minimum"
+  ],
+  "circular-measure": [
+    "circle",
+    "radius",
+    "circumference",
+    "arc",
+    "sector",
+    "angle"
+  ],
+  "conic-sections": [
+    "circle",
+    "tangent line"
+  ],
+  "differential-equations": [
+    "differentiation",
+    "derivative",
+    "equation",
+    "limit",
+    "calculus"
+  ]
+}

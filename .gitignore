@@ -2,3 +2,6 @@ node_modules
 *.log
 client/dist
 server.log
+AI_HANDOVER.md
+docs_and_implementation_plans/
+LLM_GUIDELINES.md

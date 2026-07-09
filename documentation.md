@@ -21,7 +21,7 @@ Quiz question prompts in Tenali often contain mathematical vocabulary (e.g. *den
 
 ## Functional Requirements
 
-- Recognized terms in a question prompt are shown with a dotted underline and a 📖 icon
+- Recognized terms in a question prompt are shown with a dotted underline
 - Tapping an underlined term opens an inline popover showing the term's canonical name and definition
 - Only the **first occurrence** of each term per prompt is interactive; duplicates render as plain text
 - Only **one popover is open at a time** — opening a second term closes the first
@@ -216,7 +216,7 @@ No automated tests exist.
 
 ## Acceptance Criteria
 
-- [x] Recognized math terms in question prompts are underlined and show a 📖 icon
+- [x] Recognized math terms in question prompts are underlined
 - [x] Tapping a term opens an inline popover with the canonical name and definition
 - [x] Only the first occurrence of each term per prompt is interactive
 - [x] Only one popover is open at a time
@@ -244,3 +244,149 @@ Files Changed:
 - `client/src/App.css` (modified — ~105 lines added)
 
 Notes: Changes are uncommitted on branch `feat/tap-to-define-word-glossary`. Deployed to production pending commit + build.
+
+---
+
+### v1.1 (Phase 2 — coverage expansion)
+
+Date: 2026-07-09
+
+Summary: Expanded Feature AQ coverage. Wired 3 additional prose-style prompt sites that the initial implementation missed (CustomApp default branch, Tatsavit1App, RiyaApp) and grew the glossary term dictionary from 40 to **250 unique terms** covering virtually the entire GCSE/IGCSE math vocabulary. No component or CSS changes — `GlossaryText.jsx` and `App.css` are unchanged in this phase.
+
+Files Changed:
+- `client/src/App.jsx` (modified — 3 new `<GlossaryText>` wirings at lines 46942, 48264, 49031)
+- `client/src/data/glossaryTerms.json` (modified — 40 → 250 unique entries)
+
+Breaking Changes: None.
+
+Migration Required: None — purely additive.
+
+Wiring sites after v1.1 (14 total):
+
+| # | Line | App | Notes |
+|---|---|---|---|
+| 1 | 36491 | `GKApp` | Phase 1 |
+| 2 | 38961 | `VocabApp` | Phase 1 |
+| 3 | 39257 | `makeMCQuizApp` factory | Phase 1 |
+| 4 | 39498 | `makeQuizApp` factory | Phase 1 |
+| 5 | 39857 | `DotProdApp` (fallback branch) | Phase 1 |
+| 6 | 40801 | `GymApp` | Phase 1 |
+| 7 | 42318 | `RandomMixApp` | Phase 1 |
+| 8 | 42514 | `SetsApp` | Phase 1 |
+| 9 | 42667 | `SequencesApp` | Phase 1 |
+| 10 | 42836 | `RatioApp` | Phase 1 |
+| 11 | 43004 | `PercentApp` | Phase 1 |
+| 12 | 46942 | `CustomApp` (default branch) | **Phase 2** — wraps `getPromptForType(curType, question) \|\| ''` |
+| 13 | 48264 | `Tatsavit1App` | **Phase 2** — wraps `q.prompt \|\| ''` |
+| 14 | 49031 | `RiyaApp` | **Phase 2** — wraps `q.prompt \|\| ''` |
+
+Phase 2 design decisions:
+
+- **Empty-string fallback (`... || ''`)** used on all 3 new wirings to safely handle `null`/`undefined` returns from helpers (e.g. `getPromptForType` can return `null` for some puzzle types).
+- **Trig tangent renames** to canonical `tangent line` with alias `tan`, to avoid clobbering the existing geometry `tangent` canonical in `matchMap`. Both definitions are now preserved under distinct canonicals.
+- **Duplicate removal:** Removed redundant copies of `net` (geometry), `reciprocal` (number operations), and the redundant `index` entry (whose aliases were already on the existing `exponent` entry). Removed a self-alias `factorise` for cleanliness.
+- **No changes** to `GlossaryText.jsx`, `App.css`, `server/index.js`, `package.json`, or `vite.config.js`.
+
+Glossary term count by category after v1.1:
+
+| Category | Approx. count |
+|---|---|
+| Geometry (shapes, lines, angles, circle parts, triangles, transformations) | ~70 |
+| Algebra (expressions, equations, identities, inequalities, formulas, functions, quadratics, asymptotes) | ~30 |
+| Number & Arithmetic (types, fractions, decimals, percentages, ratios, BODMAS, rounding, number operations) | ~50 |
+| Statistics & Probability (data terms, charts, probability events) | ~30 |
+| Trigonometry (sin/cos/tan, identities, bearings) | ~17 |
+| Calculus (limits, derivatives, integrals, stationary points) | ~15 |
+| Vectors & Matrices | ~10 |
+| Sets (union, intersection, complement) | ~8 |
+| Logarithms & Exponentials | ~6 |
+| Money & Business | ~9 |
+| Measurement (speed/distance/time/rate/unit) | ~5 |
+| Sign concepts (positive, negative, absolute value) | ~3 |
+
+New limitations introduced in v1.1: None (existing Phase 1 limitations unchanged).
+
+New limitations: The geometry `tangent` canonical no longer has a `"tan"` alias (since `"tan"` is reserved for the trig entry under `tangent line`). In trig prompts containing `"tan"`, the displayed definition is the trig `tangent line` one, which is correct; in geometry prompts containing `"tangent"`, the geometry definition is displayed, which is also correct.
+
+Testing performed: Manual review only (no automated tests exist for this feature). The user instructed that the dev server and backend remain running for the duration of the session, so no verification commands were executed.
+
+---
+
+### v1.2 (Phase 3 — Pre-quiz "Learn These Words" section)
+
+Date: 2026-07-09
+
+Summary: Added a NEW complementary feature — a "Learn These Words" section on every math topic's setup page (before "Start Quiz"). Lists 3-9 curated glossary terms per topic; tapping a term opens the **exact same popover** used inside quiz questions. Strictly additive: zero changes to existing in-question glossary behavior, no new dependencies, single glossary system preserved. Backed by a new lightweight `topicGlossaryMap.json` that references canonical term keys (no definitions duplicated).
+
+Files Changed:
+- `client/src/data/topicGlossaryMap.json` (**new** — 64 topics × 3-9 term references = 326 references)
+- `client/src/components/KeyTerms.jsx` (**new** — section component, ~60 lines)
+- `client/src/components/GlossaryText.jsx` (modified — 3 small additions: `export` on `matchMap`, optional `wrapperClassName` prop on `GlossaryTooltip`, class-name concatenation in wrapper span. **Zero behavior changes** to existing in-question glossary.)
+- `client/src/App.jsx` (modified — added `import KeyTerms`; added `topicKey` to both factory signatures; added `<KeyTerms topicKey="..." />` to 21 standalone welcome-boxes + 2 factories' welcome-boxes; added `topicKey: '...'` to 44 factory call configs)
+- `client/src/App.css` (modified — added `.glossary-term-wrapper--above` flip rule + `@keyframes glossary-appear-above` + `.learn-these-words-section` / `.learn-these-words-title` / `.learn-these-words-list` + chip-style overrides on existing `.glossary-term`. ~65 new lines, all using existing CSS variables.)
+
+Breaking Changes: None.
+
+Migration Required: None — purely additive.
+
+Architecture:
+
+```
+glossaryTerms.json  (definitions, single source of truth, 250 terms)
+        │
+        ▼
+GlossaryText.jsx   matchMap built once at module load
+        │
+        ├─ exports matchMap, GlossaryTooltip
+        │
+        ├── <GlossaryText>     (in-question prose renderer; 14 wiring sites)
+        │
+        └── <KeyTerms>         (pre-quiz section renderer; 65 wiring sites)
+                │
+                └── reads topicGlossaryMap.json
+                        │
+                        └── { "trigonometry": ["sine", "cosine", "tangent line", ...], ... }
+```
+
+**One glossary system invariant**: every term definition, popover rendering, and outside-click/Escape/auto-dismiss/keyboard behavior is implemented exactly once, in `GlossaryText.jsx` / `App.css`. `KeyTerms` reuses the exported `GlossaryTooltip` directly. Updating a definition in `glossaryTerms.json` automatically updates both the in-question glossary and the pre-quiz section.
+
+Design decisions:
+
+- **`wrapperClassName` prop, not a refactor** — Rather than extract a new shared component, a single optional `wrapperClassName` prop was added to `GlossaryTooltip`. Default `''` keeps all 14 in-question call sites unaffected; only `KeyTerms` passes `"glossary-term-wrapper--above"` to flip the popover upward.
+- **Topic keys are kebab-case human-readable names** (e.g. `coordinate-geometry`, `pythagoras-theorem`, `prime-factors`) — not the internal `regularApps[i].key` abbreviations (e.g. `coordgeom`). Each app's welcome-box or factory call explicitly passes the readable key, keeping `topicGlossaryMap.json` browseable.
+- **Section placement is "middle" of the welcome-box** (after welcome-text and optional tip, before difficulty picker) per the spec.
+- **Popover position is "always above" for this section** — not conditional viewport-flip. The section lives near the bottom of the welcome-box where the Start Quiz button sits, so the popover should always open upward. CSS-only `position: absolute; bottom: calc(100% + 7px)` is simpler, equally correct for the placement, and renders identically across devices.
+- **Silent skip for missing terms** — `KeyTerms` filters `matchMap[key.toLowerCase()]` results and drops `undefined` entries. Topics where every term is missing render `null` (section hidden). Per the spec edge case: "If a glossary term cannot be found, skip it without breaking the UI."
+- **Auto-skipped duplicate synonyms** — internal `seen` Set dedupes by `entry.term.toLowerCase()`. If `tangent` and `tan` are both listed, only the first renders.
+- **Curated 3-9 terms per topic** (not a hard cap) — chosen to match each topic's vocabulary density. Most topics have 3-8 terms; outliers: mensuration (9), sets (9), coordinate-geometry (8), probability (8), statistics (8), matrices (8), transformations (8), trigonometry (8), differentiation (8).
+
+Wiring sites (65 total in Phase 3):
+
+- **21 standalone math quiz welcome-boxes** — each had `<KeyTerms topicKey="<key>" />` added directly after the existing `<p className="welcome-text">…</p>`.
+- **2 factory welcome-boxes** (`makeQuizApp` and `makeMCQuizApp`) — each had `{topicKey && <KeyTerms topicKey={topicKey} />}` added directly after the optional tip line.
+- **44 factory call configs** — each had `topicKey: '<kebab-case>'` added alongside the existing `title`/`subtitle`/`apiPath`/`diffLabels`/`placeholders` properties.
+
+Curated topics (64 total, 3-9 terms each):
+
+| Group | Topics | Count |
+|---|---|---|
+| Geometry | angles, triangles, polygons, circle-theorems, transformations, mensuration, pythagoras-theorem, similarity, congruence, herons-formula, bearings | 11 |
+| Algebra | linear-equations, quadratics, quadratic-formula, simultaneous-equations, inequalities, polynomial-multiplication, polynomial-factorisation, binomial-theorem, remainder-theorem, basic-arithmetic, multiplication, addition, expansion (= indices) | 13 |
+| Number | fractions, decimals, percentages, ratios, surds, indices, square-roots, standard-form, rounding, number-bases, prime-factors, hcf-and-lcm, variation, bounds, shares-and-dividends, banking, profit-and-loss, gst | 18 |
+| Functions | functions, coordinate-geometry, line-equation, trigonometry, inverse-trigonometry, differentiation, integration, limits, differential-equations, calculus (via differentiation/integration) | 9 |
+| Statistics | statistics, probability, sets, sequences, vectors, matrices, dot-products, sequences | 8 |
+| Money/measurement | speed-distance-time, perimeter (via mensuration), area (via mensuration) | 1 (others via mensuration) |
+| Misc | section-formula, linear-programming, circular-measure, conic-sections, linear-programming, squaring | 5 |
+
+(Note: some topics overlap in scope — total 64 unique topic keys.)
+
+Intentionally NOT wired (per user spec — section would auto-hide for some but skipped entirely to keep this change minimal):
+- CustomApp, RandomMixApp, GymApp, TatsavitApp, Tatsavit1App, RiyaApp, TatsavitLineApp, BridgeApp, TenthApp, Chapter1-24App, GuessNumberApp, TwinHuntApp
+- The 7 Gym-* MCQ factory apps (GymDecimals, FuncGym, DotProdGym, FracAddGym, LinEqGym, IndicesGym, PolyGym)
+- GKApp, VocabApp (would auto-hide since no entries for their keys)
+
+Limitations introduced in v1.2: None — feature is purely additive.
+
+Pre-existing limitations (from Phase 1/2) carried forward unchanged.
+
+Testing performed: Manual review via verification script (since removed) — all 326 term-key references across 64 topics resolve to entries in `glossaryTerms.json`. 6 entries were silently dropped during development (clockwise, side, regular polygon, direct/inverse proportion, binomial-as-standalone) and removed from `topicGlossaryMap.json`. No automated tests exist for this feature. User instructed that the dev server and backend remain running for the duration of the session, so no live browser tests were executed.

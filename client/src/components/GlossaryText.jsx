@@ -23,7 +23,7 @@ import rawTerms from '../data/glossaryTerms.json'
 
 // ─── Build match map once at module load ────────────────────────────────────
 // matchMap: lowercase form → { term (canonical), definition }
-const matchMap = {}
+export const matchMap = {}
 
 try {
   rawTerms.forEach(entry => {
@@ -66,8 +66,11 @@ const glossaryRegex = (() => {
  * @param {string} definition   — plain-language definition string
  * @param {boolean} isOpen      — controlled open state from parent
  * @param {function} onToggle   — parent callback: () => void
+ * @param {string} wrapperClassName — optional extra class on the outer wrapper
+ *                                     (e.g. 'glossary-term-wrapper--above' to
+ *                                     flip the popover above the term)
  */
-function GlossaryTooltip({ displayText, term, definition, isOpen, onToggle }) {
+export function GlossaryTooltip({ displayText, term, definition, isOpen, onToggle, wrapperClassName = '' }) {
   const wrapperRef = useRef(null)
 
   // Close on outside click
@@ -106,7 +109,7 @@ function GlossaryTooltip({ displayText, term, definition, isOpen, onToggle }) {
   }, [isOpen, onToggle])
 
   return (
-    <span ref={wrapperRef} className="glossary-term-wrapper">
+    <span ref={wrapperRef} className={`glossary-term-wrapper${wrapperClassName ? ' ' + wrapperClassName : ''}`}>
       <span
         className={`glossary-term${isOpen ? ' glossary-term--open' : ''}`}
         role="button"
@@ -122,7 +125,7 @@ function GlossaryTooltip({ displayText, term, definition, isOpen, onToggle }) {
         }}
       >
         {displayText}
-        <span className="glossary-term-icon" aria-hidden="true">📖</span>
+        <span className="glossary-term-icon" aria-hidden="true"></span>
       </span>
       {isOpen && (
         <span className="glossary-popover" role="tooltip">
