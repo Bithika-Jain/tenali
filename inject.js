@@ -1,3 +1,0 @@
-const fs = require('fs'); let content = fs.readFileSync('client/src/App.jsx', 'utf8'); function inject(appName, topic) { const appStart = content.indexOf('function ' + appName + '('); if (appStart === -1) return; const autoAdv = content.indexOf('useAutoAdvance(revealed, ', appStart); if (autoAdv === -1) return; const nextLine = content.indexOf('
-', autoAdv); content = content.slice(0, nextLine) + '
-  useProgressSubmit(revealed, isCorrect, \'' + topic + '\', question?.id)' + content.slice(nextLine); } inject('AdditionApp', 'addition'); inject('BalanceScaleApp', 'balance-scale'); inject('MultiplyApp', 'multiply'); fs.writeFileSync('client/src/App.jsx', content);
