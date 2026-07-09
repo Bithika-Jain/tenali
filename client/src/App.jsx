@@ -36419,7 +36419,7 @@ function GKApp({ onBack, isGoalMode = false }) {
   const [started, setStarted] = useState(false)
   // Quiz finished flag
   const [finished, setFinished] = useState(false)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -36613,8 +36613,7 @@ const loadQuestion = async (excludeIds) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -36732,7 +36731,7 @@ function AdditionApp({ onBack, isGoalMode = false }) {
   const [revealed, setRevealed] = useState(false)
   // Results array for display
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -36945,8 +36944,7 @@ const fetchQuestion = async (selectedDifficulty = difficulty) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -37946,7 +37944,7 @@ function BasicArithApp({ onBack, isGoalMode = false }) {
   const [revealed, setRevealed] = useState(false)
   // Results array
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -38149,8 +38147,7 @@ const fetchQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -38265,7 +38262,7 @@ function QuadraticApp({ onBack, isGoalMode = false }) {
   const [revealed, setRevealed] = useState(false)
   // Array of {question, userAnswer, correctAnswer, correct, time} objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -38472,8 +38469,7 @@ const fetchQuestion = async (selectedDifficulty = difficulty) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -38712,7 +38708,7 @@ function MultiplyApp({ onBack, isGoalMode = false }) {
   const [longestStreak, setLongestStreak] = useState(0)
   const [fastestTime, setFastestTime] = useState(null)
   const [l3TimeRemaining, setL3TimeRemaining] = useState(MULT_LEVEL3_TIMEOUT_SECONDS)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -38983,8 +38979,7 @@ function MultiplyApp({ onBack, isGoalMode = false }) {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -39169,7 +39164,7 @@ function VocabApp({ onBack, isGoalMode = false }) {
   const loadVocabSeen = () => { try { return JSON.parse(localStorage.getItem(VOCAB_SEEN_KEY) || '[]') } catch { return [] } }
   const saveVocabSeen = (ids) => { try { localStorage.setItem(VOCAB_SEEN_KEY, JSON.stringify(ids)) } catch {} }
   const [seenIds, setSeenIds] = useState(loadVocabSeen)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -39399,8 +39394,7 @@ const loadQuestion = async (excludeIds) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -39558,7 +39552,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
     const [loading, setLoading] = useState(false)
     const [loadError, setLoadError] = useState('')
     const [revealed, setRevealed] = useState(false)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -39767,8 +39761,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
               <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
               <div className="checkbox-group" style={{ marginBottom: '8px' }}>
                 {[
-                  { key: 'standard', label: 'Standard' },
-                  { key: 'speed',    label: '⚡ Speed Run' },
+                                    { key: 'speed',    label: '⚡ Speed Run' },
                   { key: 'perfect',  label: '🎯 Perfect Solve' },
                   { key: 'revision', label: '🔄 Revision' },
                 ].map(g => (
@@ -39878,7 +39871,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
     const [loading, setLoading] = useState(false)
     const [loadError, setLoadError] = useState('')
     const [revealed, setRevealed] = useState(false)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -40075,8 +40068,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
             <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                       <div className="checkbox-group" style={{ marginBottom: '8px' }}>
                         {[
-                          { key: 'standard', label: 'Standard' },
-                          { key: 'speed',    label: '⚡ Speed Run' },
+                                                    { key: 'speed',    label: '⚡ Speed Run' },
                           { key: 'perfect',  label: '🎯 Perfect Solve' },
                           { key: 'revision', label: '🔄 Revision' },
                         ].map(g => (
@@ -40255,7 +40247,7 @@ function DotProdApp({ onBack }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -40543,8 +40535,7 @@ const loadQuestion = async () => {
         <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
         <div className="checkbox-group" style={{ marginBottom: '12px' }}>
           {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
+                        { key: 'speed', label: '⚡ Speed Run' },
             { key: 'perfect', label: '🎯 Perfect Solve' },
             { key: 'revision', label: '🔄 Revision' }
           ].map(g => (
@@ -42250,7 +42241,7 @@ function SquaringApp({ onBack, isGoalMode = false }) {
   const [valBSq, setValBSq] = useState('')
   const [val2AB, setVal2AB] = useState('')
   const [valFinal, setValFinal] = useState('')
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -42420,8 +42411,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -42761,7 +42751,7 @@ function RandomMixApp({ onBack, isGoalMode = false }) {
   const [results, setResults] = useState([])
   const [totalQuestions, setTotalQuestions] = useState(20)
   const [numQInput, setNumQInput] = useState('20')
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -43053,8 +43043,7 @@ function RandomMixApp({ onBack, isGoalMode = false }) {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                     <div className="checkbox-group" style={{ marginBottom: '8px' }}>
                       {[
-                        { key: 'standard', label: 'Standard' },
-                        { key: 'speed',    label: '⚡ Speed Run' },
+                                                { key: 'speed',    label: '⚡ Speed Run' },
                         { key: 'perfect',  label: '🎯 Perfect Solve' },
                         { key: 'revision', label: '🔄 Revision' },
                       ].map(g => (
@@ -43263,7 +43252,7 @@ function SetsApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -43406,8 +43395,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -43498,7 +43486,7 @@ function SequencesApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -43633,8 +43621,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -43725,7 +43712,7 @@ function RatioApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -43876,8 +43863,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -43968,7 +43954,7 @@ function PercentApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -44118,8 +44104,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -44221,7 +44206,7 @@ function IndicesApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -44387,8 +44372,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -44511,7 +44495,7 @@ function SurdsApp({ onBack, isGoalMode = false }) {
   const [loading, setLoading] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -44711,8 +44695,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -44834,7 +44817,7 @@ function FractionAddApp({ onBack, isGoalMode = false }) {
   const [revealed, setRevealed] = useState(false)
   // Results log for ResultsTable
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -45101,8 +45084,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -45311,7 +45293,7 @@ function TwinHuntApp({ onBack, isGoalMode = false }) {
   // Cached position arrays for left and right panels
   const [leftPositions, setLeftPositions] = useState([])
   const [rightPositions, setRightPositions] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -45465,8 +45447,7 @@ const generateRound = (n) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -45622,7 +45603,7 @@ function SqrtApp({ onBack, isGoalMode = false }) {
   const [revealed, setRevealed] = useState(false)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -45807,8 +45788,7 @@ const fetchQuestion = async (step) => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -45924,7 +45904,7 @@ function PolyMulApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -46104,8 +46084,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -46242,7 +46221,7 @@ function PolyFactorApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -46417,8 +46396,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -46627,7 +46605,7 @@ const loadQuestion = async () => {
    */
   // Shake + brief error message for invalid factor attempts
   const [inputError, setInputError] = useState('')
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -46761,8 +46739,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -46889,7 +46866,7 @@ function QFormulaApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -47071,8 +47048,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -47210,7 +47186,7 @@ function SimulApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -47410,8 +47386,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -47539,7 +47514,7 @@ function FuncEvalApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -47698,8 +47673,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -47829,7 +47803,7 @@ function LineEqApp({ onBack, isGoalMode = false }) {
   const [totalQ, setTotalQ] = useState(DEFAULT_TOTAL)
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -47992,8 +47966,7 @@ const loadQuestion = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '12px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed', label: '⚡ Speed Run' },
+                                            { key: 'speed', label: '⚡ Speed Run' },
                       { key: 'perfect', label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' }
                     ].map(g => (
@@ -48375,7 +48348,7 @@ function CustomApp({ onBack, isGoalMode = false }) {
   const [userCoeffs, setUserCoeffs] = useState([])
   // Object for storing various inputs: {p, q, r, s} for polyfactor, {factors} for primefactor, {x, y, z} for simul, {m, c} for lineq, etc.
   const [inputs, setInputs] = useState({})
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -49298,8 +49271,7 @@ const startQuiz = async () => {
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
                   <div className="checkbox-group" style={{ marginBottom: '8px' }}>
                     {[
-                      { key: 'standard', label: 'Standard' },
-                      { key: 'speed',    label: '⚡ Speed Run' },
+                                            { key: 'speed',    label: '⚡ Speed Run' },
                       { key: 'perfect',  label: '🎯 Perfect Solve' },
                       { key: 'revision', label: '🔄 Revision' },
                     ].map(g => (
@@ -50547,7 +50519,7 @@ function Tatsavit1App({ onBack }) {
   const [score, setScore] = useState(0)
   const [results, setResults] = useState([])
   const [finished, setFinished] = useState(false)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -51027,7 +50999,7 @@ function RiyaApp({ onBack }) {
   // within activeIndices): { selected, revealed }. Lets Back navigation
   // restore the student's earlier picks so they can review what they did.
   const [perQuestion, setPerQuestion] = useState([])
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
@@ -51490,7 +51462,7 @@ function TatsavitLineApp({ onBack }) {
   const [justSolved, setJustSolved] = useState(false)
   // Visible domain on each axis (±zoom units). Smaller = zoomed in.
   const [zoom, setZoom] = useState(10)
-  const [sessionGoal, setSessionGoal] = useState('standard')
+  const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
       setSessionGoal('standard');
