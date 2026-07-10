@@ -60056,7 +60056,7 @@ const VachanaIcons = {
 };
 
 function VachanaApp({ onBack }) {
-  const [activeTab, setActiveTab] = useState('vocab');
+  const [activeTab, setActiveTab] = useState(null);
 
   // List of Vachana exercises
   const tabs = [
@@ -60596,16 +60596,18 @@ function VachanaApp({ onBack }) {
           </h1>
           <p className="subtitle" style={{ margin: '4px 0 0 0' }}>Learn to parse, translate, and communicate in the language of mathematics</p>
         </div>
-        <button className="back-button" onClick={onBack}>← Back to Home</button>
+        {activeTab === null ? (
+          <button className="back-button" onClick={onBack}>← Back to Home</button>
+        ) : (
+          <button className="back-button" onClick={() => setActiveTab(null)}>← Back to Modules</button>
+        )}
       </div>
 
-      {/* Main Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
-        {/* Sidebar tabs */}
-        <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <h4 style={{ margin: '0 0 10px 6px', textTransform: 'uppercase', fontSize: '0.78rem', color: 'var(--clr-text-soft)', letterSpacing: '0.8px' }}>Exercises</h4>
+      {activeTab === null ? (
+        /* Minimalist Dashboard Grid of Box Divs */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px', marginTop: '10px' }}>
           {tabs.map(tab => (
-            <button
+            <div
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id);
@@ -60638,39 +60640,69 @@ function VachanaApp({ onBack }) {
                 setSimplifyMsg('');
               }}
               style={{
+                background: 'var(--clr-surface)',
+                border: '1px solid var(--clr-border)',
+                borderRadius: '16px',
+                padding: '24px',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '8px',
-                textAlign: 'left',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: 'none',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: activeTab === tab.id ? 600 : 500,
-                background: activeTab === tab.id ? 'var(--clr-accent-bg, rgba(108,206,255,0.15))' : 'transparent',
-                color: activeTab === tab.id ? 'var(--clr-accent, #6cf)' : 'var(--clr-text)',
-                transition: 'background 0.15s, color 0.15s'
+                transition: 'transform 0.15s, border-color 0.15s, box-shadow 0.15s',
+                minHeight: '160px',
+                justifyContent: 'center'
               }}
-              onMouseEnter={e => { if (activeTab !== tab.id) e.target.style.background = 'var(--clr-hover-strong)' }}
-              onMouseLeave={e => { if (activeTab !== tab.id) e.target.style.background = 'transparent' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.borderColor = 'var(--clr-accent)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-card, 0 4px 12px rgba(0,0,0,0.15))';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.borderColor = 'var(--clr-border)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '48px', height: '48px', borderRadius: '50%',
+                background: 'var(--clr-accent-bg, rgba(108,206,255,0.1))',
+                color: 'var(--clr-accent)', marginBottom: '14px'
+              }}>
+                {tab.icon}
+              </div>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 600, color: 'var(--clr-accent)', textAlign: 'center' }}>
+                {tab.label}
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--clr-text-soft)', textAlign: 'center', lineHeight: '1.4' }}>
+                {tab.desc}
+              </p>
+            </div>
           ))}
         </div>
-
-        {/* Workspace Card */}
+      ) : (
+        /* Focused Workspace Container (No Sidebar) */
         <div style={{ background: 'var(--clr-card, #1e1e24)', border: '1px solid var(--clr-border)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
           {/* Active Tab Info */}
-          <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--clr-accent)' }}>
-              {tabs.find(t => t.id === activeTab).label}
-            </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
-              {tabs.find(t => t.id === activeTab).desc}
-            </p>
+          <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--clr-accent)' }}>
+                {tabs.find(t => t.id === activeTab).label}
+              </h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
+                {tabs.find(t => t.id === activeTab).desc}
+              </p>
+            </div>
+            <button
+              onClick={() => setActiveTab(null)}
+              style={{
+                background: 'transparent', border: '1px solid var(--clr-border)',
+                color: 'var(--clr-text-soft)', cursor: 'pointer',
+                padding: '6px 12px', borderRadius: '8px', fontSize: '0.85rem'
+              }}
+            >
+              ← All Modules
+            </button>
           </div>
 
           {/* Tab Workspaces */}
@@ -61625,7 +61657,7 @@ function VachanaApp({ onBack }) {
           )}
 
         </div>
-      </div>
+      )}
     </div>
   );
 }

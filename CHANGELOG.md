@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-07-10
+
+### Added
+- **Minimalist Grid Dashboard Layout**:
+  - Redesigned the Vachana user interface to reduce cognitive load.
+  - Replaced the persistent sidebar panel with a modular, responsive dashboard grid of 18 square box divs.
+  - Programmed smooth mouse hover scaling, border color shifts, and shadow glows on the dashboard boxes.
+  - Configured tab workspaces to display in focused card views when clicked, with direct "← Back to Modules" navigation buttons.
+
 ## [0.1.2] - 2026-07-10
 
 ### Added
