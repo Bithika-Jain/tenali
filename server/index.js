@@ -47,6 +47,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const wordCreator = require('./wordCreator');
 
 // Initialize Express app and configure middleware
 const app = express();
@@ -9294,6 +9295,12 @@ app.post('/diffeq-api/check', express.json(), (req, res) => {
     : !isNaN(parseInt(userStr, 10)) && parseInt(userStr, 10) === answer;
   res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect' });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WORD CREATOR PUZZLE ROUTER (wordcreator-api)
+// ═══════════════════════════════════════════════════════════════════════════
+const wordCreatorRouter = require('./routes/wordCreator');
+app.use('/wordcreator-api', wordCreatorRouter);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // /graph — Prerequisite DAG visualisation

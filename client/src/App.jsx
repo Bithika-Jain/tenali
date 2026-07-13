@@ -23,6 +23,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import './App.css'
+import LanguageDashboard from './language/LanguageDashboard'
 import InteractiveLcmHcfApp from './LcmHcfApp'
 
 // API base URL from environment variables (Vite)
@@ -321,10 +322,14 @@ function getSpeedRunLimit(difficulty, isAdaptive) {
  *   mode      — current goal mode string
  *   start / stop / reset — control methods
  */
-function useTimer() {
+export function useTimer() {
+  // Current elapsed time in seconds, displayed to user
   const [elapsed, setElapsed]     = useState(0)
+  // Remaining time in seconds (for speed mode countdown)
   const [remaining, setRemaining] = useState(0)
+  // Goal mode ('standard' | 'speed' | 'perfect' | 'revision')
   const [mode, setMode]           = useState('standard')
+  // Reference to the timestamp when timer started (using Date.now())
   const startRef    = useRef(Date.now())
   const intervalRef = useRef(null)
   const limitRef    = useRef(0)
@@ -333,22 +338,31 @@ function useTimer() {
 
   /**
    * start(goal, onTimeout, limitSeconds)
-   * Backward-compatible: calling with no args still starts a count-up timer.
+   * Backward-compatible: calling with no args or a number (initialValue) still starts a count-up timer.
    */
   const start = (goal = 'standard', onTimeout = null, limitSeconds = 15) => {
     clearInterval(intervalRef.current)
-    startRef.current = Date.now()
+    let initialValue = 0
+    let currentGoal = goal
+    
+    // If the first argument is a number, we treat it as initialValue (backward compatibility for count-up timer)
+    if (typeof goal === 'number') {
+      initialValue = goal
+      currentGoal = 'standard'
+    }
+    
+    startRef.current = Date.now() - (initialValue * 1000)
     limitRef.current = limitSeconds
     onTORef.current  = onTimeout
     firedRef.current = false
-    setMode(goal)
-    setElapsed(0)
-    setRemaining(goal === 'speed' ? limitSeconds : 0)
+    setMode(currentGoal)
+    setElapsed(initialValue)
+    setRemaining(currentGoal === 'speed' ? limitSeconds : 0)
 
     intervalRef.current = setInterval(() => {
       const secs = Math.floor((Date.now() - startRef.current) / 1000)
       setElapsed(secs)
-      if (goal === 'speed') {
+      if (currentGoal === 'speed') {
         const left = Math.max(0, limitRef.current - secs)
         setRemaining(left)
         if (left === 0 && !firedRef.current) {
@@ -35953,6 +35967,20 @@ function App() {
     )
   }
 
+  // Route: /language → Language Puzzles dashboard and modules
+  if (pathname === '/language') {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <LanguageDashboard onBack={() => { window.location.href = '/' }} />
+        </div>
+      </div>
+    )
+  }
+
   // Route: /tenth → Cambridge IGCSE index page (links to all 24 chapters)
   if (pathname === '/tenth') {
     return (
@@ -36420,6 +36448,7 @@ function App() {
     conics: ConicsApp,             // Conic Sections
     diffeq: DiffEqApp,             // Differential Equations
     tatsavit: TatsavitApp,         // Tatsavit (progressive math drill)
+    language: LanguageDashboard,   // Language Puzzles Dashboard
     randommix: RandomMixApp,       // Random Mix (adaptive)
     custom: CustomApp,             // Custom lesson builder
     gym: GymApp,                   // Unified adaptive Gym — bundles all 7 below
@@ -36534,6 +36563,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
     { key: 'ineq', name: 'Inequalities', subtitle: 'Linear & quadratic inequalities', color: 'green' },
     { key: 'integ', name: 'Integration', subtitle: 'Reverse differentiation & areas', color: 'blue' },
     { key: 'invtrig', name: 'Inverse Trig', subtitle: 'arcsin, arccos, arctan', color: 'green' },
+    { key: 'language', name: 'Language Puzzles', subtitle: 'Fill in the blanks to create new words', color: 'green' },
     { key: 'limits', name: 'Limits', subtitle: 'Evaluate limits', color: 'purple' },
     { key: 'lineareq', name: 'Linear Equations', subtitle: 'Solve for x in one variable', color: 'blue' },
     { key: 'lineq', name: 'Line Equation', subtitle: 'Find m and c from two points', color: 'green' },
@@ -36706,6 +36736,18 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
                   <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
                 </button>
               ))}
+
+              <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
+
+              <button onClick={() => { setMenuOpen(false); window.location.href = '/language'; }} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                 onMouseLeave={e => e.target.style.background = 'none'}>
+                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+              </button>
             </div>}
           </div>
         )}
@@ -52261,7 +52303,7 @@ function TatsavitLineApp({ onBack }) {
  * @param {Function} props.onBack - Callback when back button is clicked
  * @param {React.ReactNode} props.children - Quiz content to display
  */
-function QuizLayout({ title, subtitle, onBack, children, timer, sessionGoal }) {
+export function QuizLayout({ title, subtitle, onBack, children, timer, sessionGoal }) {
   // Derive display values from the timer object
   const isSpeed   = timer && (timer.mode === 'speed'   || sessionGoal === 'speed')
   const isPerfect = sessionGoal === 'perfect'
@@ -52322,7 +52364,6 @@ function QuizLayout({ title, subtitle, onBack, children, timer, sessionGoal }) {
     }
     return child;
   });
-
   return (
     <>
       <div className="header-row">
@@ -52338,6 +52379,7 @@ function QuizLayout({ title, subtitle, onBack, children, timer, sessionGoal }) {
     </>
   )
 }
+
 
 // Export main App component (entry point)
 export default App
