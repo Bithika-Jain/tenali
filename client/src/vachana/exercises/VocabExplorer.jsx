@@ -678,38 +678,7 @@ export default function VocabExplorer() {
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
-      {/* Header section with Reset */}
-      {(vocabState.placementCompleted || vocabState.isPlacing) && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-          <button
-            onClick={handleResetVocab}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(232, 134, 74, 0.3)',
-              color: 'rgba(232, 134, 74, 0.8)',
-              cursor: 'pointer',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              fontWeight: '500',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(232, 134, 74, 0.08)';
-              e.currentTarget.style.borderColor = 'var(--clr-accent)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(232, 134, 74, 0.3)';
-            }}
-          >
-            <span>🔄</span> Reset Progress
-          </button>
-        </div>
-      )}
+      {/* Header section */}
 
       {/* 1. PLACEMENT CHOOSER */}
       {!vocabState.placementCompleted && !vocabState.isPlacing && (
@@ -878,37 +847,85 @@ export default function VocabExplorer() {
             boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
             position: 'relative'
           }}>
-            {/* Strand Label */}
-            {!vocabState.isPlacing && (
+            {/* Header / Top Badges Row */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              {/* Strand Label */}
+              {!vocabState.isPlacing ? (
+                <div style={{
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  color: 'var(--clr-accent)',
+                  background: 'rgba(232, 134, 74, 0.1)',
+                  border: '1px solid rgba(232, 134, 74, 0.2)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  {VOCAB_CORPUS.find(w => w.id === vocabSessionQuestions[vocabSessionQIndex].wordId)?.strand.replace('_', ' ')}
+                </div>
+              ) : <div />}
+
+              {/* Mathematical Definition Badge for definition questions */}
+              {vocabSessionQuestions[vocabSessionQIndex].id?.endsWith('_rec_def') && (
+                <div style={{
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  color: 'var(--clr-correct, #2ea043)',
+                  background: 'rgba(46, 160, 67, 0.1)',
+                  border: '1px solid rgba(46, 160, 67, 0.2)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  Mathematical Definition
+                </div>
+              )}
+            </div>
+
+            {/* Question Prompt or Center-Aligned Big Term */}
+            {vocabSessionQuestions[vocabSessionQIndex].id?.endsWith('_rec_def') ? (
               <div style={{
-                display: 'inline-block',
-                fontSize: '0.72rem',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                color: 'var(--clr-accent)',
-                background: 'rgba(232, 134, 74, 0.1)',
-                border: '1px solid rgba(232, 134, 74, 0.2)',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                marginBottom: '20px',
-                letterSpacing: '0.05em'
+                textAlign: 'center',
+                margin: '20px 0 36px 0'
               }}>
-                {VOCAB_CORPUS.find(w => w.id === vocabSessionQuestions[vocabSessionQIndex].wordId)?.strand.replace('_', ' ')}
+                <div style={{
+                  fontSize: '2.5rem',
+                  fontWeight: '800',
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--clr-text)',
+                  letterSpacing: '-0.02em',
+                  marginBottom: '8px'
+                }}>
+                  {VOCAB_CORPUS.find(w => w.id === vocabSessionQuestions[vocabSessionQIndex].wordId)?.term}
+                </div>
+                <div style={{
+                  fontSize: '0.92rem',
+                  color: 'var(--clr-text-soft)',
+                  fontWeight: '500'
+                }}>
+                  Select the correct mathematical definition for this term
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                fontSize: '1.28rem',
+                fontWeight: '600',
+                fontFamily: 'var(--font-display)',
+                color: 'var(--clr-text)',
+                lineHeight: '1.5',
+                marginBottom: '28px',
+                letterSpacing: '-0.01em'
+              }}>
+                {vocabSessionQuestions[vocabSessionQIndex].prompt}
               </div>
             )}
-
-            {/* Question Prompt */}
-            <div style={{
-              fontSize: '1.28rem',
-              fontWeight: '600',
-              fontFamily: 'var(--font-display)',
-              color: 'var(--clr-text)',
-              lineHeight: '1.5',
-              marginBottom: '28px',
-              letterSpacing: '-0.01em'
-            }}>
-              {vocabSessionQuestions[vocabSessionQIndex].prompt}
-            </div>
 
             {/* Option buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
@@ -1516,37 +1533,67 @@ export default function VocabExplorer() {
                   </div>
                 )}
 
-                <button
-                  onClick={() => {
-                    if (vocabState.isPlacing) {
-                      saveVocabState({
-                        ...vocabState,
-                        isPlacing: false
-                      });
-                    }
-                    setVocabSessionActive(false);
-                    setVocabSessionFinished(false);
-                  }}
-                  className="submit-btn"
-                  style={{
-                    width: '100%',
-                    maxWidth: '240px',
-                    padding: '14px 28px',
-                    background: 'var(--clr-accent)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '1rem',
-                    boxShadow: '0 4px 15px rgba(232, 134, 74, 0.3)',
-                    transition: 'transform 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1)'; }}
-                >
-                  Continue
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    onClick={() => {
+                      if (vocabState.isPlacing) {
+                        saveVocabState({
+                          ...vocabState,
+                          isPlacing: false
+                        });
+                      }
+                      setVocabSessionActive(false);
+                      setVocabSessionFinished(false);
+                    }}
+                    className="submit-btn"
+                    style={{
+                      width: '100%',
+                      maxWidth: '240px',
+                      padding: '14px 28px',
+                      background: 'var(--clr-accent)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '1rem',
+                      boxShadow: '0 4px 15px rgba(232, 134, 74, 0.3)',
+                      transition: 'transform 0.15s ease'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1)'; }}
+                  >
+                    Continue
+                  </button>
+
+                  <button
+                    onClick={handleResetVocab}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(232, 134, 74, 0.3)',
+                      color: 'rgba(232, 134, 74, 0.8)',
+                      cursor: 'pointer',
+                      padding: '8px 20px',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(232, 134, 74, 0.08)';
+                      e.currentTarget.style.borderColor = 'var(--clr-accent)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'rgba(232, 134, 74, 0.3)';
+                    }}
+                  >
+                    <span>🔄</span> Reset Progress
+                  </button>
+                </div>
               </div>
             );
           })()}
