@@ -361,7 +361,7 @@ export default function VocabExplorer() {
   };
 
   const handlePlacementAnswer = (isCorrect) => {
-    const currentQ = vocabSessionQuestions[0];
+    const currentQ = vocabSessionQuestions[vocabSessionQIndex];
     const newAnswers = [...vocabState.placementAnswers, {
       tier: vocabState.placementTier,
       wordId: currentQ.wordId,
@@ -395,7 +395,8 @@ export default function VocabExplorer() {
       };
       saveVocabState(newState);
 
-      setVocabSessionQuestions([nextQ]);
+      setVocabSessionQuestions(prev => [...prev, nextQ]);
+      setVocabSessionQIndex(prev => prev + 1);
       setVocabSelectedMcq(null);
       setVocabHasAnswered(false);
     } else {

@@ -138,7 +138,6 @@ export default function Vachana({ onBack }) {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  const activeTabMeta = activeTab ? TABS.find(t => t.id === activeTab) : null;
   const ExerciseComponent = activeTab ? EXERCISE_COMPONENTS[activeTab] : null;
 
   return (
@@ -208,16 +207,8 @@ export default function Vachana({ onBack }) {
       ) : (
         /* ── Active Exercise Workspace ── */
         <div style={{ background: 'var(--clr-card, #1e1e24)', border: '1px solid var(--clr-border)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
-          {/* Active Tab Header */}
-          <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--clr-accent)' }}>
-                {activeTabMeta?.label}
-              </h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
-                {activeTabMeta?.desc}
-              </p>
-            </div>
+          {/* Active Tab Header (Minimalist) */}
+          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
             <button
               onClick={goBack}
               style={{
