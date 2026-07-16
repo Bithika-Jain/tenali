@@ -44300,37 +44300,34 @@ function ColumnMultiplicationApp({ onBack, initialDifficulty, initialNumQuestion
           )
         })}
 
-        {/* Answer row (only after all PPs completed) */}
-        {allDone && (
-          <>
-            <div style={{ ...rowGap, marginTop: '6px' }}>
-              {labelSpan}
-              <div style={{ width: `${ansLen * (COL + GAP) - GAP}px`, height: '3px', background: 'var(--clr-border)', borderRadius: '2px' }} />
-            </div>
-            <div style={{ ...rowGap, marginTop: '8px' }}>
-              {labelSpan}
-              {question.answerDigits.map((d, i) => {
-                const correctDigit = revealed && correctAnswerDigits ? String(correctAnswerDigits[i]) : ''
-                const isRight = revealed && correctDigit !== '' && String(answerInputs[i] || '') === correctDigit
-                const isWrong = revealed && correctDigit !== '' && !isRight
-                const shown = revealed ? correctDigit : answerInputs[i] || ''
-                return (
-                  <input key={i} ref={el => answerRefs.current[i] = el} type="text" maxLength={1}
-                    value={shown}
-                    onChange={e => handleAnswerInput(i, e.target.value)}
-                    onKeyDown={e => handleAnswerKeyDown(i, e)}
-                    disabled={revealed}
-                    style={{ width: `${COL}px`, height: '42px', textAlign: 'center', fontSize: '1.4rem', fontWeight: 700,
-                      background: isRight ? 'var(--clr-correct-bg)' : isWrong ? 'var(--clr-wrong-bg)' : 'var(--clr-input)',
-                      border: `2px solid ${isRight ? 'var(--clr-correct)' : isWrong ? 'var(--clr-wrong)' : 'var(--clr-border)'}`,
-                      borderRadius: '8px', color: isRight ? 'var(--clr-correct)' : isWrong ? 'var(--clr-wrong)' : 'var(--clr-text)',
-                      fontFamily: '"Courier New", monospace', outline: 'none' }}
-                  />
-                )
-              })}
-            </div>
-          </>
-        )}
+        {/* Separator line before answer — always visible */}
+        <div style={{ ...rowGap, marginTop: '6px' }}>
+          {labelSpan}
+          <div style={{ width: `${ansLen * (COL + GAP) - GAP}px`, height: '3px', background: 'var(--clr-border)', borderRadius: '2px' }} />
+        </div>
+
+        {/* Answer row */}
+        <div style={{ ...rowGap, marginTop: '8px' }}>
+          {labelSpan}
+          {question.answerDigits.map((d, i) => {
+            const correctDigit = revealed && correctAnswerDigits ? String(correctAnswerDigits[i]) : ''
+            const isRight = revealed && correctDigit !== '' && String(answerInputs[i] || '') === correctDigit
+            const isWrong = revealed && correctDigit !== '' && !isRight
+            const shown = revealed ? correctDigit : answerInputs[i] || ''
+            return (
+              <input key={i} ref={el => answerRefs.current[i] = el} type="text" maxLength={1} value={shown}
+                onChange={e => handleAnswerInput(i, e.target.value)}
+                onKeyDown={e => handleAnswerKeyDown(i, e)}
+                disabled={revealed || !allDone}
+                style={Object.assign({ width: COL + 'px', height: '42px', textAlign: 'center', fontSize: '1.4rem', fontWeight: 700,
+                  background: isRight ? 'var(--clr-correct-bg)' : isWrong ? 'var(--clr-wrong-bg)' : 'var(--clr-input)',
+                  borderRadius: '8px', color: isRight ? 'var(--clr-correct)' : isWrong ? 'var(--clr-wrong)' : 'var(--clr-text)',
+                  fontFamily: '"Courier New", monospace', outline: 'none', opacity: allDone ? 1 : 0.5 },
+                  isRight ? { border: '2px solid var(--clr-correct)' } : isWrong ? { border: '2px solid var(--clr-wrong)' } : { border: '2px solid var(--clr-border)' })}
+              />
+            )
+          })}
+        </div>
       </div>
     )
   }
