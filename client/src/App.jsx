@@ -43549,6 +43549,7 @@ function ColumnMultiplicationApp({ onBack, initialDifficulty, initialNumQuestion
   const [results, setResults] = useState([])
   const timer = useTimer()
   const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
+  const [showHelp, setShowHelp] = useState(false)
 
   const [answerInputs, setAnswerInputs] = useState([])
   const [carryInputs, setCarryInputs] = useState([])
@@ -44000,6 +44001,71 @@ function ColumnMultiplicationApp({ onBack, initialDifficulty, initialNumQuestion
           <button onClick={onBack} style={{ position: 'absolute', top: '24px', left: '24px', background: 'transparent', border: '1px solid var(--clr-border)', borderRadius: '6px', padding: '6px 14px', color: 'var(--clr-text-soft)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>← Home</button>
           <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, fontSize: '48px', color: 'var(--clr-text)', margin: '0 0 12px', lineHeight: 1.1 }}>Column Multiplication</h1>
           <p style={{ color: 'var(--clr-text-soft)', fontSize: '0.9rem', margin: '0 0 24px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>Multiply vertically with carrying</p>
+
+          {/* Help toggle */}
+          <div style={{ marginBottom: '20px' }}>
+            <button onClick={() => setShowHelp(h => !h)} style={{ background: showHelp ? 'var(--clr-input)' : 'transparent', border: '1px solid var(--clr-border)', borderRadius: '50px', padding: '6px 16px', color: 'var(--clr-accent)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>{showHelp ? '✕ Close' : '? How to play'}</button>
+          </div>
+
+          {showHelp && (
+            <div style={{ textAlign: 'left', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: '16px', padding: '28px 28px', marginBottom: '24px', maxWidth: '580px', margin: '0 auto 24px' }}>
+              <h3 style={{ color: 'var(--clr-accent)', fontSize: '1.05rem', margin: '0 0 20px', fontFamily: 'Inter, sans-serif', fontWeight: 700, textAlign: 'center' }}>How Column Multiplication Works</h3>
+
+              {/* Step 1 */}
+              <div style={{ display: 'flex', gap: '14px', marginBottom: '18px', alignItems: 'flex-start' }}>
+                <div style={{ minWidth: '28px', height: '28px', borderRadius: '50%', background: 'var(--clr-accent)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>1</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: 'var(--clr-text)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', marginBottom: '6px' }}>Multiply by the rightmost digit first</div>
+                  <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', lineHeight: '1.5', marginBottom: '10px' }}>Take the <strong style={{ color: 'var(--clr-accent)' }}>rightmost digit</strong> of the multiplier and multiply it by each digit of the top number. Write carries above and products below the line.</div>
+                  <div style={{ background: 'var(--clr-card)', borderRadius: '10px', padding: '14px 16px', fontFamily: '"Courier New", monospace', fontSize: '1.1rem', fontWeight: 700, lineHeight: '1.6', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--clr-accent)', fontFamily: 'Inter, sans-serif', marginBottom: '2px' }}>Step 1: multiply by 9</div>
+                    <div>31</div>
+                    <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.9rem' }}>× <span style={{ color: 'var(--clr-accent)', border: '1.5px solid var(--clr-accent)', borderRadius: '4px', padding: '0 3px' }}>4</span>9</div>
+                    <div style={{ width: '60px', height: '2px', background: 'var(--clr-border)', margin: '4px auto' }} />
+                    <div style={{ color: 'var(--clr-accent)' }}>_ _</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div style={{ display: 'flex', gap: '14px', marginBottom: '18px', alignItems: 'flex-start' }}>
+                <div style={{ minWidth: '28px', height: '28px', borderRadius: '50%', background: 'var(--clr-accent)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>2</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: 'var(--clr-text)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', marginBottom: '6px' }}>Move to the next digit (shift left)</div>
+                  <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', lineHeight: '1.5', marginBottom: '10px' }}>Multiply by the <strong style={{ color: 'var(--clr-text)' }}>next digit</strong> to the left. The result shifts one place to the left. The app highlights which digit you're working on.</div>
+                  <div style={{ background: 'var(--clr-card)', borderRadius: '10px', padding: '14px 16px', fontFamily: '"Courier New", monospace', fontSize: '1.1rem', fontWeight: 700, lineHeight: '1.6', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--clr-text)', fontFamily: 'Inter, sans-serif', marginBottom: '2px' }}>Step 2: multiply by 4</div>
+                    <div>31</div>
+                    <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.9rem' }}>× <span style={{ color: 'var(--clr-text)', border: '1.5px solid var(--clr-text)', borderRadius: '4px', padding: '0 3px' }}>4</span>9</div>
+                    <div style={{ width: '60px', height: '2px', background: 'var(--clr-border)', margin: '4px auto' }} />
+                    <div>2 7 9</div>
+                    <div style={{ color: 'var(--clr-accent)' }}>1 2 4 _</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div style={{ display: 'flex', gap: '14px', marginBottom: '18px', alignItems: 'flex-start' }}>
+                <div style={{ minWidth: '28px', height: '28px', borderRadius: '50%', background: 'var(--clr-accent)', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>3</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: 'var(--clr-text)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', marginBottom: '6px' }}>Add all partial products for the final answer</div>
+                  <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.82rem', fontFamily: 'Inter, sans-serif', lineHeight: '1.5' }}>After all partial products are entered, add them up to get the final answer. Work right to left, carrying as needed.</div>
+                </div>
+              </div>
+
+              {/* Keyboard shortcuts */}
+              <div style={{ borderTop: '1px solid var(--clr-border)', paddingTop: '14px', marginTop: '14px' }}>
+                <div style={{ color: 'var(--clr-text)', fontSize: '0.82rem', fontWeight: 600, fontFamily: 'Inter, sans-serif', marginBottom: '8px' }}>Keyboard shortcuts:</div>
+                <div style={{ color: 'var(--clr-text-soft)', fontSize: '0.78rem', fontFamily: 'Inter, sans-serif', lineHeight: '1.7' }}>
+                  <strong>↑ / ↓</strong> — move between carry and digit rows &nbsp;&nbsp;
+                  <strong>← / →</strong> — move between columns &nbsp;&nbsp;
+                  <strong>Tab</strong> — jump to next partial product<br />
+                  <strong>Backspace</strong> — clear and move back
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ color: 'var(--clr-text)', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Select Difficulty:</h3>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -44163,8 +44229,30 @@ function ColumnMultiplicationApp({ onBack, initialDifficulty, initialNumQuestion
         {/* Multiplier row */}
         <div style={{ ...rowGap, marginBottom: '4px' }}>
           {labelX}
-          {paddedBDigits.map((d, i) => digitDisplay(d, i))}
+          {paddedBDigits.map((d, i) => {
+            const activeMIdx = !allDone && d !== null && (paddedBDigits.length - 1 - i) === currentPP
+            return (
+              <div key={i} style={{ width: `${COL}px`, height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: activeMIdx ? 'var(--clr-accent)' : 'var(--clr-text)', fontSize: '1.4rem', fontWeight: activeMIdx ? 900 : 700, background: activeMIdx ? 'var(--clr-accent-bg, rgba(79,140,255,0.12))' : 'transparent', borderRadius: activeMIdx ? '6px' : '0', border: activeMIdx ? '1.5px solid var(--clr-accent)' : 'none' }}>
+                {d !== null ? d : ''}
+              </div>
+            )
+          })}
         </div>
+
+        {/* Step progress + operation hint */}
+        {!allDone && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '4px 0 6px' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '4px' }}>
+              {pp.map((_, i) => (
+                <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: i < currentPP ? 'var(--clr-correct)' : i === currentPP ? 'var(--clr-accent)' : 'var(--clr-border)', transition: 'background 0.3s' }} />
+              ))}
+              <span style={{ fontSize: '0.72rem', color: 'var(--clr-text-soft)', fontFamily: 'Inter, sans-serif', fontWeight: 600, marginLeft: '4px' }}>Step {currentPP + 1} of {pp.length}</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--clr-accent)', fontFamily: '"Courier New", monospace', fontWeight: 700, background: 'var(--clr-accent-bg, rgba(79,140,255,0.08))', padding: '4px 14px', borderRadius: '8px', border: '1px solid var(--clr-accent)', opacity: 0.9 }}>
+              Now: {pp[currentPP].multiplierDigit} × {question.a} = ?
+            </div>
+          </div>
+        )}
 
         {/* Separator line */}
         <div style={rowGap}>
