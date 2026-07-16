@@ -106,8 +106,8 @@ window.fetch = function (url, options) {
 };
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.87'
-const TENALI_BUILD_DATE = '2026-07-08 12:52 IST'
+const TENALI_VERSION = '1.0.86'
+const TENALI_BUILD_DATE = '2026-05-03 18:28 IST'
 // ─── Auth helpers ───────────────────────────────────────────────────────────
 // Tiny pub/sub on top of localStorage so AuthMenu and AuthGate stay in sync.
 const AUTH_TOKEN_KEY = 'tenali-auth-token'
@@ -53081,9 +53081,9 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         }
 
         if (!data) {
-          const r = await fetch(`${API}/${apiPath}/question?difficulty=${diff}&goal=${sessionGoal}`, { headers })
-          if (!r.ok) throw new Error(`Server returned ${r.status}`)
-          data = await r.json()
+        const r = await fetch(`${API}/${apiPath}/question?difficulty=${diff}&goal=${sessionGoal}`, { headers: { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' } })
+        if (!r.ok) throw new Error(`Server returned ${r.status}`)
+        data = await r.json()
         }
 
         // Map conceptual question schema to prompt if conceptual
@@ -53425,7 +53425,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
                 })}
               </div>
             ) : (
-              <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder={getPlaceholder()} onKeyDown={handleKeyDown} autoFocus />
+            <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder={getPlaceholder()} onKeyDown={handleKeyDown} autoFocus />
             )}
           </div>}
           {!question && loading && <div style={{ textAlign: 'center', padding: '24px', color: 'var(--clr-text-soft)' }}>Loading question…</div>}
@@ -58291,9 +58291,8 @@ const loadQuestion = async () => {
       }
 
       if (!data) {
-        const r = await fetch(`${API}/fractionadd-api/question?difficulty=${diff}&goal=${sessionGoal}`, { headers })
-        if (!r.ok) throw new Error(`Server returned ${r.status}`)
-        data = await r.json()
+      const r = await fetch(`${API}/fractionadd-api/question?difficulty=${diff}&goal=${sessionGoal}`, { headers: { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' } })
+      data = await r.json()
       }
 
       // Map conceptual question schema to prompt if conceptual
@@ -58490,6 +58489,7 @@ const loadQuestion = async () => {
       })()
 
       setResults(prev => [...prev, {
+        prompt,
         question: prompt,
         userAnswer: answer.trim(),
         correctAnswer: data.display,
@@ -58560,13 +58560,9 @@ const loadQuestion = async () => {
       const display = data.display || data.correctAnswer || data.answer || ''
       const explanation = data.explanation || ''
       setFeedback(`Solution: ${display}${explanation ? '\n' + explanation : ''}`)
-      setResults(prev => [...prev, { question: prompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
+      setResults(prev => [...prev, { prompt, question: prompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
       if (isAdaptive) {
-        setAdaptScore(prev => {
-          const next = Math.max(0, prev - 0.35)
-          adaptScoreRef.current = next
-          return next
-        })
+        setAdaptScore(prev => (adaptScoreRef.current = Math.max(0, prev - 0.35)))
       }
     } catch (e) { console.error('Failed to solve fraction:', e) }
   }
@@ -58764,37 +58760,37 @@ const loadQuestion = async () => {
               )}
             </div>
           ) : (
-            <div className="fraction-problem">
-              {/* Render the problem: n1/d1 (op) n2/d2 or mixed numbers (op) mixed numbers.
-                  The operator comes from the server (default '+' for back-compat). */}
-              {question.mixed ? (
-                <div className="fraction-expression">
-                  {formatMixed(question.w1, question.n1, question.d1)}
-                  <span className="frac-operator">{question.op || '+'}</span>
-                  {formatMixed(question.w2, question.n2, question.d2)}
-                  <span className="frac-operator">=</span>
-                </div>
-              ) : (
-                <div className="fraction-expression">
-                  {formatFraction(question.n1, question.d1)}
-                  <span className="frac-operator">{question.op || '+'}</span>
-                  {formatFraction(question.n2, question.d2)}
-                  <span className="frac-operator">=</span>
-                </div>
-              )}
+          <div className="fraction-problem">
+            {/* Render the problem: n1/d1 (op) n2/d2 or mixed numbers (op) mixed numbers.
+                The operator comes from the server (default '+' for back-compat). */}
+            {question.mixed ? (
+              <div className="fraction-expression">
+                {formatMixed(question.w1, question.n1, question.d1)}
+                <span className="frac-operator">{question.op || '+'}</span>
+                {formatMixed(question.w2, question.n2, question.d2)}
+                <span className="frac-operator">=</span>
+              </div>
+            ) : (
+              <div className="fraction-expression">
+                {formatFraction(question.n1, question.d1)}
+                <span className="frac-operator">{question.op || '+'}</span>
+                {formatFraction(question.n2, question.d2)}
+                <span className="frac-operator">=</span>
+              </div>
+            )}
 
-              {/* Single text input — type answer as "3/4" or "2 3/4" */}
-              <input
-                className="answer-input"
-                type="text"
-                value={answer}
-                onChange={e => { if (!revealed) setAnswer(e.target.value) }}
-                disabled={revealed}
-                placeholder={question.mixed ? 'e.g. 2 3/4' : 'e.g. 3/4'}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
-            </div>
+            {/* Single text input — type answer as "3/4" or "2 3/4" */}
+            <input
+              className="answer-input"
+              type="text"
+              value={answer}
+              onChange={e => { if (!revealed) setAnswer(e.target.value) }}
+              disabled={revealed}
+              placeholder={question.mixed ? 'e.g. 2 3/4' : 'e.g. 3/4'}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
+          </div>
           )
         )}
 
