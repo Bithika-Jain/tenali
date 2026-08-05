@@ -54703,11 +54703,11 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         if (data && data.isConceptual && data.question) {
           data.prompt = data.question
         }
-        // Defensive: a question must have a non-empty prompt to be displayable.
-        // If the API returns malformed data (missing prompt), surface a clear
-        // error instead of rendering an empty quiz pane.
-        if (!data || typeof data !== 'object' || !data.prompt) {
-          throw new Error('Question payload is missing a prompt')
+        if (!data || typeof data !== 'object') {
+          throw new Error('Question payload is invalid')
+        }
+        if (data.isConceptual && !data.prompt) {
+          throw new Error('Conceptual question payload is missing a prompt')
         }
         setQuestion(data)
         setAnswer('')
