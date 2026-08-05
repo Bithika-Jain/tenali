@@ -1016,6 +1016,12 @@ function generateExplanation(req, data) {
     return s;
   }
 
+  // ── Conceptual MCQ Questions ──────────────────────────────────
+  if (p.includes('conceptual-api')) {
+    const correctText = d.correctAnswerText || d.correctAnswer || ans;
+    return `The correct answer is: ${correctText}`;
+  }
+
   // ── Generic fallback with prompt ──────────────────────────────
   if (b.prompt || b.display) {
     let s = `Problem: ${b.prompt || b.display}\n\n`;
