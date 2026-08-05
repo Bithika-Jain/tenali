@@ -615,9 +615,15 @@ function loadConceptual() {
     return [];
   }
   const files = fs.readdirSync(conceptualDir).filter((file) => file.endsWith('.json'));
-  return files.map((file) => {
+  return files.flatMap((file) => {
     const fullPath = path.join(conceptualDir, file);
-    return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    try {
+      const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) {
+      console.error(`Failed to parse conceptual question file ${file}:`, e);
+      return [];
+    }
   });
 }
 

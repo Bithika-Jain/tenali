@@ -657,9 +657,9 @@ function ResultsTable({ results }) {
           {results.map((r, i) => (
             <tr key={i} className={r.correct ? 'row-correct' : 'row-wrong'}>
               <td>{i + 1}</td>
-              <td>{r.question}</td>
-              <td>{r.userAnswer}</td>
-              <td>{r.correct ? `✓ (${r.correctAnswer})` : `✗ (${r.correctAnswer})`}</td>
+              <td>{r.question || r.prompt || `Question ${i + 1}`}</td>
+              <td>{r.userAnswer || '-'}</td>
+              <td>{r.correct ? `✓ (${r.correctAnswer || r.display || ''})` : `✗ (${r.correctAnswer || r.display || 'Ans'})`}</td>
               {hasCarries && (
                 <td style={{ fontSize: '0.8rem', whiteSpace: 'pre-line' }}>
                   {r.userCarries && <span>Yours: {r.userCarries}</span>}
@@ -54787,19 +54787,21 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
           body: JSON.stringify({ ...payload, sessionGoal })
         })
         const data = await r.json()
+        const qPrompt = question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : title)
+        const corrAns = data.display || data.correctAnswerText || (data.correctAnswer !== undefined ? String(data.correctAnswer) : '') || data.answer || ''
         setIsCorrect(data.correct); setRevealed(true)
         if (data.correct) setScore(s => s + 1)
         const coinMsg = (data.lil?.coinsEarned ?? 0) > 0 ? ` (+${data.lil.coinsEarned}🪙)` : ''
         if (!data.correct && sessionGoal === 'perfect') {
           // Perfect Solve: any wrong answer immediately ends the quiz
-          setFeedback(`❌ Wrong answer — Perfect Solve ended! Correct: ${data.display || ''}`)
+          setFeedback(`❌ Wrong answer — Perfect Solve ended! Correct: ${corrAns}`)
           timer.reset()
           setFinished(true)
-          setResults(prev => [...prev, { id: question.id, prompt: question.prompt, userAnswer: answer.trim(), correctAnswer: data.display, correct: false, time: timeTaken }])
+          setResults(prev => [...prev, { id: question.id, prompt: qPrompt, question: qPrompt, userAnswer: answer.trim(), correctAnswer: corrAns, correct: false, time: timeTaken }])
           return
         }
-        setFeedback(data.correct ? `✅ Correct!${coinMsg} ${data.display || ''}` : `❌ Incorrect. Answer: ${data.display || ''}`)
-        setResults(prev => [...prev, { id: question.id, prompt: question.prompt, userAnswer: answer.trim(), correctAnswer: data.display, correct: data.correct, time: timeTaken }])
+        setFeedback(data.correct ? `✅ Correct!${coinMsg} ${corrAns}` : `❌ Incorrect. Answer: ${corrAns}`)
+        setResults(prev => [...prev, { id: question.id, prompt: qPrompt, question: qPrompt, userAnswer: answer.trim(), correctAnswer: corrAns, correct: data.correct, time: timeTaken }])
         // Smooth adaptive adjustment
         if (isAdaptive) {
           const oldStage = Math.min(3, Math.max(0, Math.floor(adaptScoreRef.current)))
@@ -54839,10 +54841,11 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         })
         const data = await r.json()
         setIsCorrect(false); setRevealed(true)
-        const display = data.display || data.correctAnswer || data.answer || ''
+        const qPrompt = question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : title)
+        const display = data.display || data.correctAnswerText || (data.correctAnswer !== undefined ? String(data.correctAnswer) : '') || data.answer || ''
         const explanation = data.explanation || ''
         setFeedback(`Solution: ${display}${explanation ? '\n' + explanation : ''}`)
-        setResults(prev => [...prev, { id: question.id, prompt: question.prompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
+        setResults(prev => [...prev, { id: question.id, prompt: qPrompt, question: qPrompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
       } catch (e) { submittedRef.current = false; console.error(`Failed to solve ${title}:`, e) }
     }
 
