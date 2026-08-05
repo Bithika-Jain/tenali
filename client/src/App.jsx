@@ -61324,9 +61324,12 @@ function TwinHuntApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/twinhunt-api/check`, {
         method: 'POST',
@@ -61334,10 +61337,19 @@ function TwinHuntApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const generateRound = (n) => {
@@ -61634,9 +61646,12 @@ function SqrtApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/sqrt-api/check`, {
         method: 'POST',
@@ -61644,10 +61659,19 @@ function SqrtApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const fetchQuestion = async (step) => {
@@ -61936,9 +61960,12 @@ function PolyMulApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/polymul-api/check`, {
         method: 'POST',
@@ -61946,10 +61973,19 @@ function PolyMulApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -62254,9 +62290,12 @@ function PolyFactorApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/polyfactor-api/check`, {
         method: 'POST',
@@ -62264,10 +62303,19 @@ function PolyFactorApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -62557,9 +62605,12 @@ function PrimeFactorApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/primefactor-api/check`, {
         method: 'POST',
@@ -62567,10 +62618,19 @@ function PrimeFactorApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -62904,9 +62964,12 @@ function QFormulaApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/qformula-api/check`, {
         method: 'POST',
@@ -62914,10 +62977,19 @@ function QFormulaApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -63228,9 +63300,12 @@ function SimulApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/simul-api/check`, {
         method: 'POST',
@@ -63238,10 +63313,19 @@ function SimulApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -63550,9 +63634,12 @@ function FuncEvalApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/funceval-api/check`, {
         method: 'POST',
@@ -63560,10 +63647,19 @@ function FuncEvalApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -63839,9 +63935,12 @@ function LineEqApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/lineq-api/check`, {
         method: 'POST',
@@ -63849,10 +63948,19 @@ function LineEqApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const loadQuestion = async () => {
@@ -64410,22 +64518,33 @@ function CustomApp({ onBack, isGoalMode = false }) {
   
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
-    if (phase === 'finished') return
+    if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
-      const apiPath = getApiPathForType(curType || 'basicarith')
       const r = await fetch(`${API}/${apiPath}/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' },
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setPhase('finished'); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const startQuiz = async () => {
@@ -67593,9 +67712,12 @@ function RiyaApp({ onBack, isGoalMode = false }) {
   const handleTimeout = async () => {
     if (typeof revealed !== 'undefined' && revealed) return
     if (typeof finished !== 'undefined' && finished) return
+    if (typeof phase !== 'undefined' && phase === 'finished') return
     try { if (typeof setIsCorrect !== 'undefined') setIsCorrect(false) } catch(_) {}
     try { if (typeof setRevealed !== 'undefined') setRevealed(true) } catch(_) {}
-    try { if (typeof setFeedback !== 'undefined') setFeedback('⏰ Time\'s up! Speed run requires a quick answer.') } catch(_) {}
+    try { if (typeof setFeedback !== 'undefined') setFeedback("⏰ Time's up!") } catch(_) {}
+    const timeTaken = timer.stop ? timer.stop() : 0
+    const qPrompt = question ? (question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : 'Question')) : 'Question'
     try {
       const r = await fetch(`${API}/riya-api/check`, {
         method: 'POST',
@@ -67603,10 +67725,19 @@ function RiyaApp({ onBack, isGoalMode = false }) {
         body: JSON.stringify({ ...(typeof question !== 'undefined' ? question : {}), userAnswer: '', answer: '', sessionGoal })
       })
       const d = await r.json()
-      if (sessionGoal === 'perfect') {
-        try { setFinished(true); timer.reset() } catch(_) {}
+      const corrAns = d.display || d.correctAnswer || d.answer || '—'
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: corrAns, correct: false, time: timeTaken }])
       }
-    } catch(e) { console.error('handleTimeout error:', e) }
+      if (sessionGoal === 'perfect') {
+        try { if (typeof setFinished === 'function') setFinished(true); if (typeof setPhase === 'function') setPhase('finished'); timer.reset() } catch(_) {}
+      }
+    } catch(e) {
+      console.error('handleTimeout error:', e)
+      if (typeof setResults === 'function') {
+        setResults(prev => [...prev, { prompt: qPrompt, question: qPrompt, userAnswer: '(timeout)', correctAnswer: '—', correct: false, time: timeTaken }])
+      }
+    }
   }
 
 const startQuiz = () => {
