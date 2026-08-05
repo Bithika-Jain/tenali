@@ -54669,12 +54669,14 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         const isMilestone = (questionNumber > 0 && questionNumber % 5 === 0) || promotionTriggeredRef.current
         promotionTriggeredRef.current = false
 
+        const headers = { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' }
+
         let data = null
         if (isMilestone) {
           try {
             const excludeList = results.map(r => r.id || '').filter(Boolean).join(',')
-            const cr = await fetch(`${API}/conceptual-api/question?topic=${apiPath.replace('-api', '')}&difficulty=${diff}&exclude=${excludeList}`, {
-              headers: { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' },
+            const cr = await fetch(`${API}/conceptual-api/question?topic=${apiPath.replace('-api', '')}&difficulty=${diff}&exclude=${excludeList}&goal=${sessionGoal}`, {
+              headers,
               signal: controller.signal
             })
             if (cr.ok) {
@@ -54689,7 +54691,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
 
         if (!data) {
           const r = await fetch(`${API}/${apiPath}/question?difficulty=${diff}&goal=${sessionGoal}`, {
-            headers: { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' },
+            headers,
             signal: controller.signal
           })
           if (!r.ok) throw new Error(`Server returned ${r.status}`)
@@ -60641,11 +60643,13 @@ const loadQuestion = async () => {
       const isMilestone = (questionNumber > 0 && questionNumber % 5 === 0) || promotionTriggeredRef.current
       promotionTriggeredRef.current = false
 
+      const headers = { 'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : '' }
+
       let data = null
       if (isMilestone) {
         try {
           const excludeList = results.map(r => r.id || '').filter(Boolean).join(',')
-          const cr = await fetch(`${API}/conceptual-api/question?topic=fractionadd&difficulty=${diff}&exclude=${excludeList}`)
+          const cr = await fetch(`${API}/conceptual-api/question?topic=fractionadd&difficulty=${diff}&exclude=${excludeList}&goal=${sessionGoal}`, { headers })
           if (cr.ok) {
             data = await cr.json()
           } else {
@@ -60858,6 +60862,7 @@ const loadQuestion = async () => {
       })()
 
       setResults(prev => [...prev, {
+        prompt,
         question: prompt,
         userAnswer: answer.trim(),
         correctAnswer: data.display,
@@ -60928,7 +60933,7 @@ const loadQuestion = async () => {
       const display = data.display || data.correctAnswer || data.answer || ''
       const explanation = data.explanation || ''
       setFeedback(`Solution: ${display}${explanation ? '\n' + explanation : ''}`)
-      setResults(prev => [...prev, { question: prompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
+      setResults(prev => [...prev, { prompt, question: prompt, userAnswer: '(solved)', correctAnswer: display, correct: false, time: 0 }])
       if (isAdaptive) {
         setAdaptScore(prev => {
           const next = Math.max(0, prev - 0.35)

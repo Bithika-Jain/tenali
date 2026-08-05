@@ -606,7 +606,6 @@ const WordProblemGenerator = {
     return templates[Math.floor(Math.random() * templates.length)];
   }
 };
-
 // Directory containing conceptual questions
 const conceptualDir = path.join(__dirname, '..', 'conceptual', 'questions');
 
