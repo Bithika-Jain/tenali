@@ -777,6 +777,7 @@ app.post('/conceptual-api/check', (req, res) => {
     correctAnswer: q.answerOption,
     correctAnswerText: q.answerText,
     display,
+    explanation: q.kidExplanation || q.explanation || '',
     message: correct ? 'Correct! 🎉' : 'Wrong ❌'
   });
 });

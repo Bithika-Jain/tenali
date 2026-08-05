@@ -24,6 +24,7 @@
 
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import ConceptualVisualDiagram from './components/ConceptualVisualDiagram';
 import VoiceAssistant from './components/VoiceAssistant';
 import OnboardingTour from './components/OnboardingTour';
 import SpatialReasoningMCQ from './SpatialReasoningMCQ';
@@ -54996,6 +54997,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
             <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <GlossaryText text={question.prompt} />
             </div>
+            <ConceptualVisualDiagram visualType={question.visualType} visualData={question.visualData} />
             {question.options ? (
               <div className="mcq-options-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '480px', margin: '20px auto', padding: '0 10px' }}>
                 {question.options.map((opt, idx) => {
@@ -61081,6 +61083,7 @@ const loadQuestion = async () => {
           question.isConceptual ? (
             <div style={{ textAlign: 'center', width: '100%' }}>
               <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
+              <ConceptualVisualDiagram visualType={question.visualType} visualData={question.visualData} />
               {question.options && (
                 <div className="mcq-options-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '480px', margin: '20px auto', padding: '0 10px' }}>
                   {question.options.map((opt, idx) => {

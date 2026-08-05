@@ -1,14 +1,23 @@
 {
-  "id": 1008,
+  "id": 1001,
   "topic": "basicarith",
-  "question": "What is the result when you multiply two negative numbers?",
+  "op": "*",
+  "question": "How many apples are there in total?",
+  "visualType": "group-counting",
+  "visualData": {
+    "groups": 3,
+    "itemsPerGroup": 2,
+    "icon": "🍎",
+    "label": "3 groups of 2 apples"
+  },
   "options": [
-    "A negative number",
-    "A positive number",
-    "Zero",
-    "It depends on which number has a larger absolute value"
+    "3 + 2 = 5",
+    "3 × 2 = 6",
+    "3 × 3 = 9",
+    "2 + 2 = 4"
   ],
   "answerOption": "B",
-  "answerText": "A positive number",
-  "explanation": "Multiplying two signs that are the same always results in a positive number. Therefore, negative × negative = positive (and positive × positive = positive)."
+  "answerText": "3 × 2 = 6",
+  "explanation": "3 groups of 2 apples means 3 × 2 = 6 apples total.",
+  "kidExplanation": "3 groups of 2 apples means 3 × 2 = 6 apples total."
 }

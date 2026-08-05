@@ -2,14 +2,21 @@
   "id": 1002,
   "topic": "fractionadd",
   "op": "+",
-  "question": "What is the key requirement before you can add two fractions with different denominators?",
+  "question": "What fraction of the circle is shaded blue?",
+  "visualType": "fraction-pie",
+  "visualData": {
+    "numerator": 3,
+    "denominator": 4,
+    "shadedColor": "#3B82F6"
+  },
   "options": [
-    "Multiply the numerators first",
-    "Find a common denominator (typically the LCM of the denominators)",
-    "Simply add the denominators together",
-    "Convert them both into decimals first"
+    "1 / 4",
+    "3 / 4",
+    "4 / 3",
+    "2 / 4"
   ],
   "answerOption": "B",
-  "answerText": "Find a common denominator (typically the LCM of the denominators)",
-  "explanation": "Before adding or subtracting fractions, their denominators must be the same so that you are adding parts of equal size. You do this by finding a common denominator (usually the Lowest Common Multiple)."
+  "answerText": "3 / 4",
+  "explanation": "3 out of 4 slices are shaded blue, so the fraction is 3/4.",
+  "kidExplanation": "3 out of 4 slices are shaded blue, so the fraction is 3/4."
 }
