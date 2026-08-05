@@ -750,6 +750,8 @@ app.get('/conceptual-api/question', (req, res) => {
     topic: q.topic,
     question: q.question,
     options: q.options,
+    visualType: q.visualType,
+    visualData: q.visualData,
     isConceptual: true
   });
 });
