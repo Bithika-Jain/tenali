@@ -4901,7 +4901,7 @@ function AdaptiveMixedApp({ studentName }) {
           {question && (
             <>
               <div className="question-box" style={{ fontSize: '1.4rem' }}>
-                {question.prompt} = ?
+                {question.prompt}{question.prompt.trim().endsWith('?') ? '' : ' = ?'}
               </div>
               <p style={{ fontSize: '0.75rem', opacity: 0.5, textAlign: 'center', margin: '0.25rem 0' }}>
                 {question.type === 'fraction-add' || question.type === 'fraction-mul' ? 'Answer as simplified fraction (e.g., 3/4)' :
