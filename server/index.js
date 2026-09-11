@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TENALI - Educational Quiz Platform Server
  *
  * A comprehensive Node.js/Express server that powers an educational quiz and math problem-solving platform.
@@ -52,6 +52,7 @@ const path = require('path');
 const http = require('http');
 const wordCreator = require('./wordCreator');
 const logger = require('./lib/logger');
+const { generateExplanation } = require('./explanations');
 
 // Catch what would otherwise be a silent crash (or, for unhandled promise
 // rejections on Node 15+, a crash with no application-level record of why).
@@ -535,9 +536,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-
-const { generateExplanation } = require('./explanations');
-global.generateExplanation = generateExplanation;
 
 // ── Extracted topic routers (Phase 2) ────────────────────────────────────────
 const arithmeticRouter = require('./routes/arithmetic');
