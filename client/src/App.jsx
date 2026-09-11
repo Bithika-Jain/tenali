@@ -56089,7 +56089,7 @@ const BasesApp = makeQuizApp({
 })
 
 const CircleThApp = makeQuizApp({
-  title: 'Circle Theorems', subtitle: 'Angles, tangents, cyclic quads', apiPath: 'circle-api', topicKey: 'circle-theorems',
+  title: 'Circle Theorems', subtitle: 'Angles, tangents, cyclic quads', apiPath: 'circleth-api', topicKey: 'circle-theorems',
   diffLabels: { easy: 'Easy — Semicircle', medium: 'Medium — Centre/Circum', hard: 'Hard — Cyclic quad', extrahard: 'Extra Hard — Tangent' },
   placeholders: 'e.g. 45',
 })
@@ -58258,7 +58258,7 @@ const RANDOM_MIX_TOPICS = [
   { key: 'log', name: 'Logarithms', api: 'log-api' },
   { key: 'diff', name: 'Differentiation', api: 'diff-api' },
   { key: 'bases', name: 'Number Bases', api: 'bases-api' },
-  { key: 'circleth', name: 'Circle Theorems', api: 'circle-api' },
+  { key: 'circleth', name: 'Circle Theorems', api: 'circleth-api' },
   { key: 'integ', name: 'Integration', api: 'integ-api' },
   { key: 'stdform', name: 'Standard Form', api: 'stdform-api' },
   { key: 'bounds', name: 'Bounds', api: 'bounds-api' },
@@ -64613,7 +64613,7 @@ function fetchQuestionForType(type, difficulty, qIndex = 0, sessionGoal = 'stand
     log: `${API}/log-api/question?difficulty=${difficulty}`,
     diff: `${API}/diff-api/question?difficulty=${difficulty}`,
     bases: `${API}/bases-api/question?difficulty=${difficulty}`,
-    circleth: `${API}/circle-api/question?difficulty=${difficulty}`,
+    circleth: `${API}/circleth-api/question?difficulty=${difficulty}`,
     integ: `${API}/integ-api/question?difficulty=${difficulty}`,
     stdform: `${API}/stdform-api/question?difficulty=${difficulty}`,
     bounds: `${API}/bounds-api/question?difficulty=${difficulty}`,
@@ -64655,7 +64655,6 @@ function fetchQuestionForType(type, difficulty, qIndex = 0, sessionGoal = 'stand
 }
 
 function getApiPathForType(type) {
-  if (type === 'circleth') return 'circle-api'
   return `${type}-api`
 }
 
@@ -65345,7 +65344,7 @@ const startQuiz = async () => {
       case 'remfactor': case 'heron': case 'shares': case 'banking': case 'gst':
       case 'section': case 'linprog': case 'circmeasure': case 'conics': case 'diffeq': {
         if (answer === '') return
-        const apiMap = { trig: 'trig-api', ineq: 'ineq-api', coordgeom: 'coordgeom-api', prob: 'prob-api', stats: 'stats-api', matrix: 'matrix-api', vectors: 'vectors-api', dotprod: 'dotprod-api', transform: 'transform-api', mensur: 'mensur-api', bearings: 'bearings-api', log: 'log-api', diff: 'diff-api', bases: 'bases-api', circleth: 'circle-api', integ: 'integ-api', stdform: 'stdform-api', bounds: 'bounds-api', sdt: 'sdt-api', variation: 'variation-api', hcflcm: 'hcflcm-api', profitloss: 'profitloss-api', rounding: 'rounding-api', binomial: 'binomial-api', complex: 'complex-api', angles: 'angles-api', triangles: 'triangles-api', congruence: 'congruence-api', pythag: 'pythag-api', polygons: 'polygons-api', similarity: 'similarity-api', squaring: 'squaring-api', tatsavit: 'tatsavit-api', lineareq: 'lineareq-api', decimals: 'decimals-api', permcomb: 'permcomb-api', limits: 'limits-api', invtrig: 'invtrig-api', remfactor: 'remfactor-api', heron: 'heron-api', shares: 'shares-api', banking: 'banking-api', gst: 'gst-api', section: 'section-api', linprog: 'linprog-api', circmeasure: 'circmeasure-api', conics: 'conics-api', diffeq: 'diffeq-api' }
+        const apiMap = { trig: 'trig-api', ineq: 'ineq-api', coordgeom: 'coordgeom-api', prob: 'prob-api', stats: 'stats-api', matrix: 'matrix-api', vectors: 'vectors-api', dotprod: 'dotprod-api', transform: 'transform-api', mensur: 'mensur-api', bearings: 'bearings-api', log: 'log-api', diff: 'diff-api', bases: 'bases-api', circleth: 'circleth-api', integ: 'integ-api', stdform: 'stdform-api', bounds: 'bounds-api', sdt: 'sdt-api', variation: 'variation-api', hcflcm: 'hcflcm-api', profitloss: 'profitloss-api', rounding: 'rounding-api', binomial: 'binomial-api', complex: 'complex-api', angles: 'angles-api', triangles: 'triangles-api', congruence: 'congruence-api', pythag: 'pythag-api', polygons: 'polygons-api', similarity: 'similarity-api', squaring: 'squaring-api', tatsavit: 'tatsavit-api', lineareq: 'lineareq-api', decimals: 'decimals-api', permcomb: 'permcomb-api', limits: 'limits-api', invtrig: 'invtrig-api', remfactor: 'remfactor-api', heron: 'heron-api', shares: 'shares-api', banking: 'banking-api', gst: 'gst-api', section: 'section-api', linprog: 'linprog-api', circmeasure: 'circmeasure-api', conics: 'conics-api', diffeq: 'diffeq-api' }
         const genPayload = { ...question, userAnswer: answer.trim() }
         res = await fetch(`${API}/${apiMap[curType]}/check`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(genPayload) })
         data = await res.json()
