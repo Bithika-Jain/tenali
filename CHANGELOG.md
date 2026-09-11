@@ -19,9 +19,23 @@
 ---
 
 <!-- live-changelog:start -->
-### 📊 Total: 1003 commits · 72 active days · 37 unique authors
+### 📊 Total: 1008 commits · 73 active days · 37 unique authors
 
 > **📖 How to read this:** Each entry shows a clickable SHA, the author, and a one-line subject. Sub-bullets show the **exact files touched** with per-file `+additions −deletions`, the **total line stats**, and (when present) the **commit body** explaining what & why.
+
+#### 📅 2026-09-11  <sub>(5 commits)</sub>
+
+- 📌 [`d260a95e`](https://github.com/vicharanashala/tenali/commit/d260a95e2809b85bb0c48e3eefaf37d5ee11f8ab) — **jgupta05072003-code** — 🔀 PR [#200](https://github.com/vicharanashala/tenali/pull/200) from `vicharanashala` — feat/extract-tiles-registry
+- 📌 [`1e08dc75`](https://github.com/vicharanashala/tenali/commit/1e08dc752e959e7e8d32b57ad07a9f00f15a8a28) — **jgupta05072003-code** — 🔀 PR [#254](https://github.com/vicharanashala/tenali/pull/254) from `vicharanashala` — fix/lockfile-sync
+- 📌 [`232f33c2`](https://github.com/vicharanashala/tenali/commit/232f33c21fb897a7070c3616cef0eb4a27a0ecd9) — **Jinal Gupta** — Resync client and server lockfiles so npm ci works again
+    - 📁 **2 files:** `client/package-lock.json` `+64 −20`, `server/package-lock.json` `+17 −43`
+    - 📊 **`+81 −63`** · 2 files
+- 📌 [`4882bd49`](https://github.com/vicharanashala/tenali/commit/4882bd491358a58b09728d12edc36f7be63c420f) — **Jinal Gupta** — Complete the tile registry: hamburger entries, categories, foldInto
+    - 📁 **2 files:** `client/src/App.jsx` `+4 −12`, `client/src/features/tiles.js` `+110 −92`
+    - 📊 **`+114 −104`** · 2 files
+- 📌 [`32e7af6d`](https://github.com/vicharanashala/tenali/commit/32e7af6da25a339bfbc8c23c18e9368385fc256a) — **Jinal Gupta** — Extract the home-screen tile registry out of App.jsx
+    - 📁 **2 files:** `client/src/App.jsx` `+2 −98`, `client/src/features/tiles.js` `+110 −0`
+    - 📊 **`+112 −98`** · 2 files
 
 #### 📅 2026-09-10  <sub>(4 commits)</sub>
 
