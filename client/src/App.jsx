@@ -45562,18 +45562,7 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0, isG
   const isSearching = search.trim() !== ''
   const matchFilter = (a) => a.name.toLowerCase().includes(search.toLowerCase()) || a.subtitle.toLowerCase().includes(search.toLowerCase())
   
-  // Under Goal Practice mode, we include Random Mix & Custom Lesson at the top of the grid list (omitting Gym since it does not support goals)
-  const goalFeatured = [
-    { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
-    { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
-  ]
-  
-  const filteredGoalFeatured = isSearching ? goalFeatured.filter(matchFilter) : goalFeatured
-  const filteredFeatured = isSearching ? featuredApps.filter(matchFilter) : featuredApps
   const filteredRegular = isSearching ? regularApps.filter(matchFilter) : regularApps
-  
-  // Decide which items to show on the main grid list
-  const displayGridApps = isGoalSelection ? filteredRegular : [...filteredRegular]
   const filteredHamburgerApps = isSearching ? hamburgerApps.filter(matchFilter) : hamburgerApps
 
   // Grid layout tracking (for responsive display)
@@ -45595,7 +45584,7 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0, isG
   }, [])
 
   // Calculate number of rows for display (for grid dimension label at bottom)
-  const rows = Math.ceil(displayGridApps.length / (cols || 1))
+  const rows = Math.ceil(filteredRegular.length / (cols || 1))
 
   return (
     <>
@@ -45802,7 +45791,7 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0, isG
         />
       </div>
       <div id="tour-home-grid" className="menu-grid" ref={gridRef}>
-        {displayGridApps.map((app) => {
+        {filteredRegular.map((app) => {
           const isGold = goldMastery && goldMastery.includes(app.key)
           const isCompleted = isStage3Completed(app.key, completedTopics)
           return (
