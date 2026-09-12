@@ -29,8 +29,62 @@
 ### ✨ **69 math topics · Algorithmically generated · Adaptive difficulty · Live multiplayer · Step-by-step solutions**
 
 </div>
+## 🧠 Pedagogical Features: Progressive & Interactive Learning
 
----
+### The Problem
+
+Students may rush through theoretical content to reach quizzes, while
+text-heavy learning can be less engaging for younger learners.
+
+### Our Solution
+
+Tenali combines **Progressive Disclosure** with a child-friendly
+**"Learn by Playing"** approach:
+
+**Understand → Interact → Discover → Practice → Test**
+
+### 1. Progressive Disclosure
+
+Learning content is revealed step-by-step to reduce cognitive overload
+and encourage focused learning. In the enhanced **Angles** module,
+students progress through:
+
+1. What Is an Angle?
+2. Types of Angles
+3. Find 90° Challenge
+4. Rules & Examples
+5. Angle Detective
+6. Completion & Test
+
+### 2. Interactive Learning
+
+Instead of relying only on text, students actively explore concepts through:
+
+- 🖐️ Draggable angle visualization
+- 📐 Angle-type discovery
+- 🎯 90° challenge
+- 🔍 Real-world Angle Detective activity
+
+### 3. Learn → Test Gateway
+
+The learning flow connects directly to the existing assessment:
+
+**Learn → Explore → Practice → Complete → Test**
+
+The existing quiz logic remains unchanged.
+
+### 4. Child-Friendly Design
+
+The experience uses simple explanations, interactive SVG visuals,
+large touch targets, rounded cards, and subtle feedback to make
+mathematical concepts easier and more engaging for young learners.
+
+### 5. Data-Driven Architecture
+
+Learning content remains separated from UI logic:
+
+```text
+Learning JSON → learnContent.js → Learning Page → Interactive Components
 
 ## 📑 Table of Contents
 
@@ -57,6 +111,7 @@
 **🤝 Community**
 - [⚙️ Quick Start](#-quick-start)
 - [🧩 Add a Puzzle](#-add-a-new-puzzle)
+- [📝 Contributor Onboarding](#-contributor-onboarding-mandatory)
 - [🏆 Contributors → CONTRIBUTORS.md](CONTRIBUTORS.md)
 
 </td>
@@ -79,12 +134,12 @@ It is built to run on a single VPS — `tenali.fun` — with one Node process se
 <p align="center">
   <table>
     <tr>
-      <td align="center"><b>822</b><br/><sub>commits</sub></td>
-      <td align="center"><b>61</b><br/><sub>PRs merged</sub></td>
-      <td align="center"><b>20</b><br/><sub>GitHub contributors</sub></td>
+      <td align="center"><b>1008</b><br/><sub>commits</sub></td>
+      <td align="center"><b>93</b><br/><sub>PRs merged</sub></td>
+      <td align="center"><b>37</b><br/><sub>GitHub contributors</sub></td>
       <td align="center"><b>⭐ 6</b><br/><sub>stars</sub></td>
-      <td align="center"><b>🍴 59</b><br/><sub>forks</sub></td>
-      <td align="center"><b>🐛 51</b><br/><sub>open issues</sub></td>
+      <td align="center"><b>🍴 76</b><br/><sub>forks</sub></td>
+      <td align="center"><b>🐛 134</b><br/><sub>open issues</sub></td>
     </tr>
   </table>
 </p>
@@ -166,8 +221,40 @@ Each quiz instance maintains a float `adaptScore` (0 – 3). Correct answers add
 ### 🔍 3. Detective Agency
 `detective-app.jsx` ships story-driven mystery puzzles — each case is a chain of math clues, solving one unlocks the next.
 
-### 📐 4. Concept Lab
-`conceptPlay.js` + `conceptSession.js` provide a 5-stage concept mastery loop: **Predict → Grid → Guided → Independent → Review**.
+### 📐 4. Concept Playgrounds
+A five-stage conceptual loop that fronts a topic's drill. Two skills ship today:
+
+| Tile | Mode key | Stages |
+|---|---|---|
+| Quadratics: Concept Lab | `qformula-concept` | Predict → Derivation → Guided → Independent → Review |
+| Sim. Equations: Concept Lab | `simul-concept` | Predict → Grid → Precision → Elimination → Cases |
+
+Both are login-gated and reached from the home grid; the existing `qformula` and
+`simul` drill tiles are unchanged and still go straight to the quiz. Finishing the
+stages lands on a completion screen offering **Free Practice**, which opens that
+topic's normal quiz.
+
+**API** (all routes require a Bearer token; the learner is the JWT `sub`, never a
+request parameter):
+
+| Route | Purpose |
+|---|---|
+| `GET /api/concept-session/:skillId/state` | Current stage, grounding score, review schedule, mastery |
+| `POST /api/concept-session/:skillId/session` | Persist a completed stage |
+| `POST /api/concept-session/:skillId/review/start` | Begin a due spaced review |
+| `POST /api/concept-playgrounds/attempt` | Playground struggle telemetry |
+
+**Persistence.** `SkillMasteryState` holds per-learner progress; `QformulaConceptSession`
+and `SimulConceptSession` hold each completed run; `ConceptPlayAttempt` holds telemetry.
+
+Two fields on `SkillMasteryState` are deliberately separate and must stay that way:
+`currentStage` is progress through the stage flow, `conceptReviewRung` is position on
+the spaced-repetition ladder.
+
+**Mastery is server-authoritative.** A completed stage is reported to
+`lil/processAttempt`, the same pipeline every topic quiz uses, so Concept Playgrounds
+is not a separate mastery model. The client renders the mastery value the server
+returns and computes none of its own.
 
 ### 📚 5. Guided Learning Journey
 Linear curriculum with concept checkpoints. Completing one unlocks the next. Server enforces progression via `UserTopicProgress` (locked → blue → bronze → silver → gold).
@@ -176,7 +263,12 @@ Linear curriculum with concept checkpoints. Completing one unlocks the next. Ser
 Wrap any `POST *-api/check` call with `{ solve: true }` and the server returns a step-by-step walkthrough from `generateExplanation()` — covers 50+ puzzle types.
 
 ### 🧠 7. Spaced Repetition
-`lib/spacingLadder.js` promotes recently-missed questions back into rotation, driven by BKT (Bayesian Knowledge Tracing — `lib/bkt.js`).
+`lib/spacingLadder.js` schedules Concept Playground reviews on a `[1, 3, 7, 14, 30]`-day
+ladder. A review that is passed moves the learner one rung up, a failed one moves them
+one rung down, and the next review is scheduled that many days out.
+
+This is **not** BKT-driven. `lib/bkt.js` exists but is not yet wired into the session
+flow; see issue #289.
 
 ### 🛡️ 8. Proctoring System
 Optional exam-mode supervision with webcam + face-api.js emotion detection, focus / tab-switch event logging, and an admin-only `/api/proctor/sessions` dashboard.
@@ -493,6 +585,80 @@ Five-step recipe:
 
 ---
 
+## 📝 Contributor Onboarding (Mandatory)
+
+Every student contributing to the Tenali project is required to submit an **Onboarding Document** (`.md`) before their first pull request. The document is a record of your understanding of the project and your plan for contributing to it. Submissions that omit any of the sections below will be returned for revision.
+
+### Purpose
+
+The Onboarding Document exists to ensure that every contributor:
+
+1. Has a working understanding of what Tenali is and the problem it solves.
+2. Has read the existing codebase and can describe its current state in their own words.
+3. Has independently identified weaknesses, gaps, and risks in the current implementation.
+4. Has formed opinions and proposed ideas for improving the project.
+5. Has a concrete plan for tackling at least one identified gap.
+6. Has produced a tangible contribution (code, documentation, tests, or design) that advances the project.
+
+> Reading the code without forming a view is not enough. The document is intended to surface misunderstanding early and to surface good ideas quickly.
+
+### File Naming and Location
+
+- **File name:** `ONBOARDING-<your-name>.md`
+- **Location:** the PR must add the file to the [`Ideas/`](Ideas) folder.
+- **Format:** Markdown (`.md`). PDF, `.docx`, or plain `.txt` will not be accepted.
+
+> ⚠️ **Raise the PR for your onboarding document against the [`Ideas/`](Ideas) folder specifically** — not `docs/`, not the repo root, and not any other folder. PRs that add the onboarding document elsewhere will be closed and asked to resubmit.
+
+### Required Sections
+
+The document must contain the following six sections, in this order.
+
+**1. What is Tenali?**
+Describe, in your own words, what Tenali is, the domain it operates in (adaptive math learning / education), the population it serves, and the problem it aims to solve. Do not copy the project description verbatim — paraphrase it. A reader who has never heard of Tenali should be able to understand the project's purpose from this section alone.
+
+**2. What do you understand by Tenali (as a system)?**
+Go beyond the mission statement. Describe Tenali as a system: the users (students, and where relevant, maintainers/admins), the main entities (puzzle types, difficulty tiers, the Battle Arena, the code playground, auth/sessions), and the high-level flow of data through it — e.g. how a question is generated, checked, and explained. This section is about demonstrating that you understand how the pieces fit together, not just what the project is for.
+
+**3. Current State of the Repository — What Has Been Done So Far**
+Walk through the repository and describe what already exists:
+- Tech stack (frontend, backend, database, auth, deployment).
+- Implemented features (the 69 puzzle types, adaptive difficulty, Battle Arena multiplayer, step-by-step explanations, the code playground, auth, etc.).
+
+**4. Gaps Observed in the Code**
+This is the most important section. List concrete weaknesses, bugs, missing features, or design problems you found while reading the code. You can also pick issues stated on the Tenali GitHub repo and solve them. For each gap, include:
+- **Where** — file path and line range or component.
+- **What** — what is wrong or missing.
+- **Why it matters** — the impact on users, maintainability, performance, or correctness.
+
+**5. Ideas for the Project**
+Propose improvements, new features, or refactors that would make Tenali better. Each idea should include:
+- **What** — the proposed change in one or two sentences.
+- **Why** — the problem it solves or the value it adds.
+- **How** — a sketch of the implementation.
+
+**6. Your Contribution**
+Describe the actual work you have done as part of this onboarding. A contribution can be any of:
+- A bug fix.
+- A new feature or endpoint (e.g. a new puzzle type — see [🧩 Add a New Puzzle](#-add-a-new-puzzle)).
+- A refactor.
+- Tests (unit, integration, or end-to-end).
+- Documentation (this onboarding document counts only if it is exceptional; the document itself is mandatory, not the contribution).
+- A design document or architectural proposal.
+
+### Review Criteria
+
+A reviewer will check the Onboarding Document against the following:
+
+- All six sections are present and in order.
+- Section 4 cites real files and real code, not vague impressions.
+- Section 5 ideas are grounded in the gaps from Section 4.
+- The document is written in the contributor's own words, not generated by an AI without understanding.
+
+> A document that reads as if it was written without reading the codebase will be sent back.
+
+---
+
 ## 🌐 Deployment Topology
 
 ```
@@ -525,36 +691,53 @@ tenali.fun (DNS → <production IP — redacted from public docs>)
 <!-- live-snapshot:start -->
 | 🏆 Commits | 🔀 Merged PRs | 👥 Contributors | 🧩 Puzzles | 📚 Vocab | 🌍 GK |
 |----------:|------------:|--------------:|---------:|-------:|----:|
-| **822** | **61** | **20** | **69** | **7,662** | **991** |
+| **1008** | **93** | **37** | **69** | **7,662** | **991** |
 <!-- live-snapshot:end -->
 
 ### 🥇 Leaderboard
 
 <!-- live-rank:start -->
-_Live data — last regenerated 2026-08-05 · auto-refreshed by [`github-actions[bot]`](https://github.com/features/actions) on every push to `main` and every 12h._
+_Live data — last regenerated 2026-09-12 · auto-refreshed by [`github-actions[bot]`](https://github.com/features/actions) on every push to `main` and every 12h._
 
 | # | 👤 Real Name | 🔗 GitHub ID | 📝 Commits | 🔀 PRs | 🏷️ Role |
 |--:|:-------------|:-------------|----------:|-----:|:--------|
 | 🥇 | **S. R. S. Iyengar**<br/><sub>↳ also commits as <b>sudarshan</b></sub> | [sudarshansudarshan](https://github.com/sudarshansudarshan) | **281** | 0  | Lead Architect · Curriculum Author · 69 puzzle families |
-| 🥈 | **Mudit Agrawal** | [muditagrawal2007](https://github.com/muditagrawal2007) | **168** | 13  | Maintainer · Battle Arena · Linear Algebra · Sudoku · Playground |
-| 🥉 | **Jinal Gupta** | [jgupta05072003-code](https://github.com/jgupta05072003-code) | **83** | 0  | Upstream Repo Maintainer & PR Reviewer |
-| 4. | **Lakshmi Varshini Nandula ** | [varshini-nandula](https://github.com/varshini-nandula) | **43** | 1  | Profile Showcase & Offline Storage |
-| 5. | **Sameer Mishra** | [24F3005086](https://github.com/24F3005086) | **36** | 4  | i18n · Accessibility · Concept Labs |
-| 6. | **Vaibhav Satish**<br/><sub>↳ also commits as <b>Vaibhav</b></sub> | [Vaibhav-sa30](https://github.com/Vaibhav-sa30) | **35** | 2  | Vachana Literacy Lab & Vocabulary |
-| 7. | **DIPTOSUBHRO DATTA**<br/><sub>↳ also commits as <b>Dipto Subhro</b></sub> | [diptosubhro-ctrl](https://github.com/diptosubhro-ctrl) | **33** | 1  | Tutorial System + Noise Filter Refactor |
-| 8. | **Ritish Karmakar** | [Ritish007-svg](https://github.com/Ritish007-svg) | **27** | 1  | Percentages Level-wise Explanation |
-| 9. | **saniyajos**<br/><sub>↳ also commits as <b>SaniyaJos</b></sub> | [saniyajos](https://github.com/saniyajos) | **22** | 0  | — |
-| 10. | **K C Dharshan** | [KCDharshan9](https://github.com/KCDharshan9) | **21** | 1  | Tap-to-Define Word Glossary |
-| 11. | **Ahana Banerjee** | [ahana4banerjee](https://github.com/ahana4banerjee) | **20** | 2  | Goal Practice & Learning Journey |
-| 12. | **Shubh Dixit**<br/><sub>↳ also commits as <b>Shubh dixit</b></sub> | [Shubhdix9](https://github.com/Shubhdix9) | **16** | 2  | Premium UI Suite + Word Games |
-| 13. | **github-actions-bot-**<br/><sub>↳ also commits as <b>github-actions[bot]</b></sub> | [github-actions-bot-](https://github.com/github-actions-bot-) | **12** | 0  | — |
-| 14. | **SemiColonSlayer** | [sharonyamita-spec](https://github.com/sharonyamita-spec) | **6** | 1  | Math Detective Agency |
-| 15. | **PANDRAJU POORVI PRAVALLIKA** | [poorvipravallika06](https://github.com/poorvipravallika06) | **6** | 1  | HCF/LCM Interactive Module |
-| 16. | **Rukmender T** | [RukmenderT](https://github.com/RukmenderT) | **5** | 1  | Curiosity Mode |
-| 17. | **S. Hamsalekha**<br/><sub>↳ also commits as <b>S Hamsalekha</b></sub> | [S-Hamsalekha-annamai](https://github.com/S-Hamsalekha-annamai) | **3** | 1  | Track User Progress |
-| 18. | **Krishna Gelra** | [KrishnaG-101](https://github.com/KrishnaG-101) | **3** | 1  | Language Puzzles Framework |
-| 19. | **Anshul Kanodia** | [AnshulKanodia](https://github.com/AnshulKanodia) | **2** | 0  | Geometry Game Restoration |
-| 20. | **Vasuki** | [vasuki-tenali](https://github.com/vasuki-tenali) | **1** | 0  | Infra contributor |
+| 🥈 | **Mudit Agrawal** | [muditagrawal2007](https://github.com/muditagrawal2007) | **193** | 25  | Maintainer · Battle Arena · Linear Algebra · Sudoku · Playground |
+| 🥉 | **Jinal Gupta** | [jgupta05072003-code](https://github.com/jgupta05072003-code) | **107** | 0  | Upstream Repo Maintainer & PR Reviewer |
+| 4. | **Priyanshu Kumar** | [priyanshu7725](https://github.com/priyanshu7725) | **54** | 1  | — |
+| 5. | **Vaibhav Satish**<br/><sub>↳ also commits as <b>Vaibhav</b></sub> | [Vaibhav-sa30](https://github.com/Vaibhav-sa30) | **48** | 3  | Vachana Literacy Lab & Vocabulary |
+| 6. | **Lakshmi Varshini Nandula ** | [varshini-nandula](https://github.com/varshini-nandula) | **43** | 1  | Profile Showcase & Offline Storage |
+| 7. | **Sameer Mishra** | [24F3005086](https://github.com/24F3005086) | **36** | 4  | i18n · Accessibility · Concept Labs |
+| 8. | **DIPTOSUBHRO DATTA**<br/><sub>↳ also commits as <b>Dipto Subhro</b></sub> | [diptosubhro-ctrl](https://github.com/diptosubhro-ctrl) | **33** | 1  | Tutorial System + Noise Filter Refactor |
+| 9. | **Ritish Karmakar** | [Ritish007-svg](https://github.com/Ritish007-svg) | **27** | 1  | Percentages Level-wise Explanation |
+| 10. | **saniyajos**<br/><sub>↳ also commits as <b>SaniyaJos</b></sub> | [saniyajos](https://github.com/saniyajos) | **22** | 0  | — |
+| 11. | **K C Dharshan** | [KCDharshan9](https://github.com/KCDharshan9) | **21** | 1  | Tap-to-Define Word Glossary |
+| 12. | **Ahana Banerjee** | [ahana4banerjee](https://github.com/ahana4banerjee) | **20** | 2  | Goal Practice & Learning Journey |
+| 13. | **harshyy07** | [harshyy07](https://github.com/harshyy07) | **16** | 1  | — |
+| 14. | **Shubh Dixit**<br/><sub>↳ also commits as <b>Shubh dixit</b></sub> | [Shubhdix9](https://github.com/Shubhdix9) | **16** | 2  | Premium UI Suite + Word Games |
+| 15. | **athira**<br/><sub>↳ also commits as <b>Athira</b></sub> | [athira](https://github.com/athira) | **15** | 0  | — |
+| 16. | **tanvish desai** | [tanvishdesai](https://github.com/tanvishdesai) | **9** | 2  | — |
+| 17. | **shreejal-bangera**<br/><sub>↳ also commits as <b>Shreejal Bangera</b></sub> | [shreejal-bangera](https://github.com/shreejal-bangera) | **8** | 0  | — |
+| 18. | **ayushkochhar**<br/><sub>↳ also commits as <b>AYUSHKOCHHAR</b></sub> | [ayushkochhar](https://github.com/ayushkochhar) | **6** | 0  | — |
+| 19. | **krishna009-pro**<br/><sub>↳ also commits as <b>Krishna009-pro</b></sub> | [krishna009-pro](https://github.com/krishna009-pro) | **6** | 0  | — |
+| 20. | **SemiColonSlayer** | [sharonyamita-spec](https://github.com/sharonyamita-spec) | **6** | 1  | Math Detective Agency |
+| 21. | **PANDRAJU POORVI PRAVALLIKA** | [poorvipravallika06](https://github.com/poorvipravallika06) | **6** | 1  | HCF/LCM Interactive Module |
+| 22. | **Krishna Gelra** | [KrishnaG-101](https://github.com/KrishnaG-101) | **5** | 1  | Language Puzzles Framework |
+| 23. | **Rukmender T** | [RukmenderT](https://github.com/RukmenderT) | **5** | 1  | Curiosity Mode |
+| 24. | **Disha Bansal** | [disha01bansal](https://github.com/disha01bansal) | **4** | 0  | — |
+| 25. | **pradeep-gupta7**<br/><sub>↳ also commits as <b>Pradeep-gupta7</b></sub> | [pradeep-gupta7](https://github.com/pradeep-gupta7) | **3** | 0  | — |
+| 26. | **S. Hamsalekha**<br/><sub>↳ also commits as <b>S Hamsalekha</b></sub> | [S-Hamsalekha-annamai](https://github.com/S-Hamsalekha-annamai) | **3** | 1  | Track User Progress |
+| 27. | **disha-singh**<br/><sub>↳ also commits as <b>Disha Singh</b></sub> | [disha-singh](https://github.com/disha-singh) | **2** | 0  | — |
+| 28. | **Remy baastin rayappan** | [remy-baastin](https://github.com/remy-baastin) | **2** | 1  | — |
+| 29. | **harsh**<br/><sub>↳ also commits as <b>Harsh</b></sub> | [harsh](https://github.com/harsh) | **2** | 0  | — |
+| 30. | **Anshul Kanodia** | [AnshulKanodia](https://github.com/AnshulKanodia) | **2** | 0  | Geometry Game Restoration |
+| 31. | **jinal-gupta**<br/><sub>↳ also commits as <b>JINAL GUPTA</b></sub> | [jinal-gupta](https://github.com/jinal-gupta) | **1** | 0  | — |
+| 32. | **athira-kv**<br/><sub>↳ also commits as <b>Athira Kv</b></sub> | [athira-kv](https://github.com/athira-kv) | **1** | 0  | — |
+| 33. | **code-zero07**<br/><sub>↳ also commits as <b>Code-Zero07</b></sub> | [code-zero07](https://github.com/code-zero07) | **1** | 0  | — |
+| 34. | **garv-arora**<br/><sub>↳ also commits as <b>Garv Arora</b></sub> | [garv-arora](https://github.com/garv-arora) | **1** | 0  | — |
+| 35. | **pradeep-gupta**<br/><sub>↳ also commits as <b>Pradeep Gupta</b></sub> | [pradeep-gupta](https://github.com/pradeep-gupta) | **1** | 0  | — |
+| 36. | **priyanshu-kumar**<br/><sub>↳ also commits as <b>Priyanshu Kumar</b></sub> | [priyanshu-kumar](https://github.com/priyanshu-kumar) | **1** | 0  | — |
+| 37. | **Vasuki** | [vasuki-tenali](https://github.com/vasuki-tenali) | **1** | 0  | Infra contributor |
 <!-- live-rank:end -->
 
 
