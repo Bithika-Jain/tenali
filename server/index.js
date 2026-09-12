@@ -671,9 +671,21 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 
 /**
- * Load all GK questions from JSON files in the questions directory
- * Each file should contain a question object with id, question, options, answerOption, answerText
- * @returns {Array<object>} Array of question ob// Directory containing conceptual questions
+ * Reads all JSON files in `dir` concurrently (fs.promises.readFile lets libuv's
+ * thread pool overlap the I/O instead of doing sequential blocking syscalls)
+ * and parses each one.
+ * @param {string} dir - Directory containing JSON files
+ * @returns {Promise<Array<object>>} Array of parsed objects
+ */
+async function loadJsonDir(dir) {
+  const files = fs.readdirSync(dir).filter((file) => file.endsWith('.json'));
+  const contents = await Promise.all(
+    files.map((file) => fs.promises.readFile(path.join(dir, file), 'utf8'))
+  );
+  return contents.map((raw) => JSON.parse(raw));
+}
+
+// Directory containing conceptual questions
 const conceptualDir = path.join(__dirname, '..', 'conceptual', 'questions');
 
 // Load all conceptual questions from JSON files (deduplicated by composite topic_id key)
