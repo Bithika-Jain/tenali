@@ -48,6 +48,19 @@ jobs:
     defaults:
       run:
         working-directory: server
+    # MongoDB is needed by the Concept Playgrounds integration tests, which use a
+    # scratch database and drop it afterwards. The topic contract tests do not
+    # touch Mongo and are unaffected.
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
