@@ -221,8 +221,40 @@ Each quiz instance maintains a float `adaptScore` (0 – 3). Correct answers add
 ### 🔍 3. Detective Agency
 `detective-app.jsx` ships story-driven mystery puzzles — each case is a chain of math clues, solving one unlocks the next.
 
-### 📐 4. Concept Lab
-`conceptPlay.js` + `conceptSession.js` provide a 5-stage concept mastery loop: **Predict → Grid → Guided → Independent → Review**.
+### 📐 4. Concept Playgrounds
+A five-stage conceptual loop that fronts a topic's drill. Two skills ship today:
+
+| Tile | Mode key | Stages |
+|---|---|---|
+| Quadratics: Concept Lab | `qformula-concept` | Predict → Derivation → Guided → Independent → Review |
+| Sim. Equations: Concept Lab | `simul-concept` | Predict → Grid → Precision → Elimination → Cases |
+
+Both are login-gated and reached from the home grid; the existing `qformula` and
+`simul` drill tiles are unchanged and still go straight to the quiz. Finishing the
+stages lands on a completion screen offering **Free Practice**, which opens that
+topic's normal quiz.
+
+**API** (all routes require a Bearer token; the learner is the JWT `sub`, never a
+request parameter):
+
+| Route | Purpose |
+|---|---|
+| `GET /api/concept-session/:skillId/state` | Current stage, grounding score, review schedule, mastery |
+| `POST /api/concept-session/:skillId/session` | Persist a completed stage |
+| `POST /api/concept-session/:skillId/review/start` | Begin a due spaced review |
+| `POST /api/concept-playgrounds/attempt` | Playground struggle telemetry |
+
+**Persistence.** `SkillMasteryState` holds per-learner progress; `QformulaConceptSession`
+and `SimulConceptSession` hold each completed run; `ConceptPlayAttempt` holds telemetry.
+
+Two fields on `SkillMasteryState` are deliberately separate and must stay that way:
+`currentStage` is progress through the stage flow, `conceptReviewRung` is position on
+the spaced-repetition ladder.
+
+**Mastery is server-authoritative.** A completed stage is reported to
+`lil/processAttempt`, the same pipeline every topic quiz uses, so Concept Playgrounds
+is not a separate mastery model. The client renders the mastery value the server
+returns and computes none of its own.
 
 ### 📚 5. Guided Learning Journey
 Linear curriculum with concept checkpoints. Completing one unlocks the next. Server enforces progression via `UserTopicProgress` (locked → blue → bronze → silver → gold).
@@ -231,7 +263,12 @@ Linear curriculum with concept checkpoints. Completing one unlocks the next. Ser
 Wrap any `POST *-api/check` call with `{ solve: true }` and the server returns a step-by-step walkthrough from `generateExplanation()` — covers 50+ puzzle types.
 
 ### 🧠 7. Spaced Repetition
-`lib/spacingLadder.js` promotes recently-missed questions back into rotation, driven by BKT (Bayesian Knowledge Tracing — `lib/bkt.js`).
+`lib/spacingLadder.js` schedules Concept Playground reviews on a `[1, 3, 7, 14, 30]`-day
+ladder. A review that is passed moves the learner one rung up, a failed one moves them
+one rung down, and the next review is scheduled that many days out.
+
+This is **not** BKT-driven. `lib/bkt.js` exists but is not yet wired into the session
+flow; see issue #289.
 
 ### 🛡️ 8. Proctoring System
 Optional exam-mode supervision with webcam + face-api.js emotion detection, focus / tab-switch event logging, and an admin-only `/api/proctor/sessions` dashboard.
