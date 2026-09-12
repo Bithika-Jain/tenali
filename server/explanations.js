@@ -10,14 +10,16 @@ function loadConceptual() {
     return [];
   }
   const files = fs.readdirSync(conceptualDir).filter((file) => file.endsWith('.json'));
-  return files.map((file) => {
+  return files.flatMap((file) => {
     const fullPath = path.join(conceptualDir, file);
-    return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    try {
+      const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) {
+      return [];
+    }
   });
 }
-
-// Load all conceptual questions at server startup
-const conceptualQuestions = loadConceptual();
 
 module.exports = { generateExplanation };
 
@@ -812,7 +814,7 @@ function generateExplanation(req, data) {
 
   // ── Conceptual MCQ Questions ──────────────────────────────────
   if (p.includes('conceptual-api')) {
-    const q = conceptualQuestions.find((item) => String(item.id) === String(b.id));
+    const q = loadConceptual().find((item) => String(item.id) === String(b.id));
     if (q && q.explanation) {
       return q.explanation;
     }

@@ -732,7 +732,8 @@ app.get('/conceptual-api/question', (req, res) => {
     return res.status(400).json({ error: 'Missing topic parameter' });
   }
 
-  let pool = conceptualQuestions.filter((q) => q.topic === topic);
+  const allConceptual = loadConceptual();
+  let pool = allConceptual.filter((q) => q.topic === topic);
   if (!pool.length) {
     return res.status(404).json({ error: `No conceptual questions for topic: ${topic}` });
   }
@@ -772,7 +773,8 @@ app.post('/conceptual-api/check', (req, res) => {
     return res.status(400).json({ error: 'Missing question ID' });
   }
 
-  const q = conceptualQuestions.find((item) => String(item.id) === String(id));
+  const allConceptual = loadConceptual();
+  const q = allConceptual.find((item) => String(item.id) === String(id));
   if (!q) {
     return res.status(404).json({ error: 'Question not found' });
   }

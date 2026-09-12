@@ -54614,6 +54614,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
     const [loading, setLoading] = useState(false)
     const [loadError, setLoadError] = useState('')
     const [revealed, setRevealed] = useState(false)
+    const [revealedCorrectAnswer, setRevealedCorrectAnswer] = useState('')
   const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
   useEffect(() => {
     if (!isGoalMode) {
@@ -54714,6 +54715,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         setFeedback('')
         setIsCorrect(null)
         setRevealed(false)
+        setRevealedCorrectAnswer('')
         submittedRef.current = false
         advancedRef.current = false
         timer.start(sessionGoal, handleTimeout, getSpeedRunLimit(effectiveDifficulty ? effectiveDifficulty() : (difficulty || 'easy'), isAdaptive))
@@ -54790,6 +54792,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
         const qPrompt = question.prompt || question.question || (question.n1 !== undefined ? `${question.n1} ${question.op || '+'} ${question.n2}` : title)
         const corrAns = data.display || data.correctAnswerText || (data.correctAnswer !== undefined ? String(data.correctAnswer) : '') || data.answer || ''
         setIsCorrect(data.correct); setRevealed(true)
+        if (data.correctAnswer) setRevealedCorrectAnswer(data.correctAnswer)
         if (data.correct) setScore(s => s + 1)
         const coinMsg = (data.lil?.coinsEarned ?? 0) > 0 ? ` (+${data.lil.coinsEarned}🪙)` : ''
         if (!data.correct && sessionGoal === 'perfect') {
@@ -55006,7 +55009,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
                 {question.options.map((opt, idx) => {
                   const letter = ['A', 'B', 'C', 'D'][idx]
                   const isSelected = answer === letter
-                  const isCorrectChoice = revealed && letter === question.answerOption
+                  const isCorrectChoice = revealed && (letter === (revealedCorrectAnswer || question.answerOption))
                   const isWrongChoice = revealed && isSelected && !isCorrect
                   
                   let cardClass = "mcq-option-card"
@@ -60599,6 +60602,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
   const [loading, setLoading] = useState(false)
   // Whether answer has been revealed (submitted)
   const [revealed, setRevealed] = useState(false)
+  const [revealedCorrectAnswer, setRevealedCorrectAnswer] = useState('')
   // Results log for ResultsTable
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState(isGoalMode ? 'speed' : 'standard')
@@ -60682,6 +60686,7 @@ const loadQuestion = async () => {
       setFeedback('')
       setIsCorrect(null)
       setRevealed(false)
+      setRevealedCorrectAnswer('')
       timer.start(sessionGoal, handleTimeout, getSpeedRunLimit(difficulty ?? 'easy', isAdaptive ?? false))
     } catch (e) {
       console.error('Failed to load fraction question:', e)
@@ -60792,6 +60797,7 @@ const loadQuestion = async () => {
         const data = await r.json()
         setIsCorrect(data.correct)
         setRevealed(true)
+        if (data.correctAnswer) setRevealedCorrectAnswer(data.correctAnswer)
         if (data.correct) setScore(s => s + 1)
 
         setFeedback(data.correct ? 'Correct!' : `Incorrect. Correct answer is option ${data.correctAnswer}. ${data.explanation || ''}`)
@@ -60852,7 +60858,7 @@ const loadQuestion = async () => {
 
       const prompt = question.mixed
         ? `${question.w1} ${question.n1}/${question.d1} ${op} ${question.w2} ${question.n2}/${question.d2}`
-        : `${question.n1}/${question.d1} ${op} ${question.n2}/${question.d2}`
+        : `${question.n1}/${question.d1} ${op} ${question.n2}/${question.d2}`;
 
       (() => {
         const _ci = data.lil?.coinsEarned > 0 ? ` (+${data.lil.coinsEarned} coins!)` : ''
@@ -60905,6 +60911,7 @@ const loadQuestion = async () => {
         const data = await r.json()
         setIsCorrect(false)
         setRevealed(true)
+        if (data.correctAnswer) setRevealedCorrectAnswer(data.correctAnswer)
         setFeedback(`Solution: Correct option is ${data.correctAnswer}. ${data.explanation || ''}`)
         setResults(prev => [...prev, {
           question: question.prompt,
@@ -61092,7 +61099,7 @@ const loadQuestion = async () => {
                   {question.options.map((opt, idx) => {
                     const letter = ['A', 'B', 'C', 'D'][idx]
                     const isSelected = answer === letter
-                    const isCorrectChoice = revealed && letter === question.answerOption
+                    const isCorrectChoice = revealed && (letter === (revealedCorrectAnswer || question.answerOption))
                     const isWrongChoice = revealed && isSelected && !isCorrect
 
                     let cardClass = "mcq-option-card"
