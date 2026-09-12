@@ -624,7 +624,7 @@ app.use('/trig-api',      geometryRouter);
 app.use('/pythag-api',    geometryRouter);
 app.use('/heron-api',     geometryRouter);
 app.use('/coordgeom-api', geometryRouter);
-app.use('/circle-api',    geometryRouter);
+app.use('/circleth-api',  geometryRouter);
 
 const advancedRouter = require('./routes/advanced');
 app.use('/matrix-api',     advancedRouter);
