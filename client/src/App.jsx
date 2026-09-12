@@ -112,6 +112,28 @@ import GeometryApp from './GeometryApp';
 import EquationSandboxApp from './lib/EquationSandboxApp.jsx';
 import QFormulaConceptApp from './lib/concept/QFormulaConceptApp.jsx';
 import SimulConceptApp from './lib/simul-concept/SimulConceptApp.jsx';
+
+// Concept Playgrounds entry points.
+//
+// modeMap renders <ActiveApp {...standardProps} />, which cannot supply the
+// topic's quiz component, so each concept app gets a thin wrapper that passes
+// it in. The quiz apps themselves are unchanged and their own tiles still work.
+// Both are login-gated: the concept session API authenticates every request.
+function QFormulaConceptMode({ onBack }) {
+  return (
+    <AuthGate>
+      <QFormulaConceptApp onBack={onBack} QFormulaApp={QFormulaApp} />
+    </AuthGate>
+  );
+}
+
+function SimulConceptMode({ onBack }) {
+  return (
+    <AuthGate>
+      <SimulConceptApp onBack={onBack} SimulQuizApp={SimulApp} />
+    </AuthGate>
+  );
+}
 import DiagnosticQuiz from './lib/DiagnosticQuiz.jsx';
 import { useI18n } from './lib/i18n.jsx';
 import CuriosityApp from './Curiosity.jsx';
@@ -44784,7 +44806,9 @@ function App() {
     polyfactor: PolyFactorApp,     // Polynomial factoring
     primefactor: PrimeFactorApp,   // Prime factorization
     qformula: QFormulaApp,         // Quadratic formula
+    'qformula-concept': QFormulaConceptMode, // Quadratic formula — 5-stage concept lab
     simul: SimulApp,               // Simultaneous equations
+    'simul-concept': SimulConceptMode,       // Simultaneous equations — 5-stage concept lab
     funceval: FuncEvalApp,         // Function evaluation
     lineq: LineEqApp,              // Line equation
     basicarith: BasicArithApp,     // Basic arithmetic (+, −, ×)
@@ -45039,6 +45063,7 @@ function App() {
       multiply: 'Multiplication Tables', vocab: 'Vocabulary', spot: 'Twin Hunt',
       sqrt: 'Square Root', polymul: 'Polynomial Multiplication', polyfactor: 'Polynomial Factoring',
       primefactor: 'Prime Factorization', qformula: 'Quadratic Formula', simul: 'Simultaneous Equations',
+      'qformula-concept': 'Quadratics: Concept Lab', 'simul-concept': 'Sim. Equations: Concept Lab',
       funceval: 'Functions', lineq: 'Line Equations', basicarith: 'Arithmetic',
       fractionadd: 'Fractions', surds: 'Surds', indices: 'Indices',
       sequences: 'Sequences & Series', ratio: 'Ratio & Proportion', percent: 'Percentages',

@@ -136,6 +136,14 @@ app.use('/api/auth', auth.router);
 app.use('/api/progress', progress.router);
 app.use('/api/hints', hints);
 app.use('/api/translate', translate.router);
+
+// ── Concept Playgrounds ──────────────────────────────────────────────────────
+// The 5-stage conceptual loop that fronts the qformula and simul drills.
+// Both routers authenticate every request; learner identity is the JWT `sub`.
+const conceptSession = require('./conceptSession');
+const conceptPlay = require('./conceptPlay');
+app.use('/api/concept-session', conceptSession);
+app.use('/api/concept-playgrounds', conceptPlay);
 const treasurehuntRouter = require('./treasurehunt/routes');
 
 console.log("Treasure router imported");
